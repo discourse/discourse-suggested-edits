@@ -72,11 +72,17 @@ module DiscourseSuggestedEdits
       ) do
         on_success { head :no_content }
         on_model_not_found(:suggested_edit) { raise Discourse::NotFound }
+        on_failed_policy(:can_see_post) { raise Discourse::NotFound }
         on_failed_policy(:can_update_suggested_edit) { raise Discourse::InvalidAccess }
+        on_failed_policy(:suggestion_is_pending) do
+          render_json_error(
+            I18n.t("discourse_suggested_edits.errors.not_pending"),
+            status: :conflict,
+          )
+        end
         on_failed_contract do |contract|
           render_json_error(contract.errors.full_messages.first, status: :bad_request)
         end
-        on_failed_step(:ensure_pending) { |step| render_json_error(step.error, status: :conflict) }
       end
     end
 

@@ -5,7 +5,7 @@ RSpec.describe DiscourseSuggestedEdits::WithdrawSuggestion do
     it { is_expected.to validate_presence_of(:suggestion_id) }
   end
 
-  describe '.call' do
+  describe ".call" do
     subject(:result) { described_class.call(params:, **dependencies) }
 
     fab!(:category)
@@ -29,50 +29,54 @@ RSpec.describe DiscourseSuggestedEdits::WithdrawSuggestion do
       SiteSetting.suggested_edits_included_categories = category.id.to_s
     end
 
-    context 'when contract is invalid' do
+    context "when contract is invalid" do
       let(:params) { { suggestion_id: nil } }
 
       it { is_expected.to fail_a_contract }
     end
 
-    context 'when suggested edit is not found' do
+    context "when suggested edit is not found" do
       let(:params) { { suggestion_id: 0 } }
 
       it { is_expected.to fail_to_find_a_model(:suggested_edit) }
     end
 
-    context 'when user cannot update the suggested edit' do
+    context "when user cannot see the post" do
+      before do
+        post.topic.update!(category: Fabricate(:private_category, group: Fabricate(:group)))
+      end
+
+      it { is_expected.to fail_a_policy(:can_see_post) }
+    end
+
+    context "when user cannot update the suggested edit" do
       fab!(:acting_user, :user)
 
       it { is_expected.to fail_a_policy(:can_update_suggested_edit) }
     end
 
-    context 'when the suggestion is not pending' do
+    context "when the suggestion is not pending" do
       before { suggested_edit.update!(status: :dismissed) }
 
       it { is_expected.to fail_a_policy(:can_update_suggested_edit) }
     end
 
-    context 'when everything is ok' do
-      let(:messages) do
-        MessageBus.track_publish("/suggested-edits/topic/#{topic.id}") { result }
-      end
+    context "when everything is ok" do
+      let(:messages) { MessageBus.track_publish("/suggested-edits/topic/#{topic.id}") { result } }
 
       it { is_expected.to run_successfully }
 
-      it 'withdraws the suggested edit' do
-        expect { result }.to change { suggested_edit.reload.status }.from('pending').to(
-          'withdrawn'
-        )
+      it "withdraws the suggested edit" do
+        expect { result }.to change { suggested_edit.reload.status }.from("pending").to("withdrawn")
       end
 
-      it 'publishes a pending count update' do
-        review_message = messages.find { |m| m.data[:type] == 'suggested_edits_changed' }
+      it "publishes a pending count update" do
+        review_message = messages.find { |m| m.data[:type] == "suggested_edits_changed" }
         expect(review_message.data[:pending_count]).to eq(0)
       end
 
-      it 'publishes a resolved update to the suggester' do
-        resolved_message = messages.find { |m| m.data[:type] == 'suggested_edit_resolved' }
+      it "publishes a resolved update to the suggester" do
+        resolved_message = messages.find { |m| m.data[:type] == "suggested_edit_resolved" }
         expect(resolved_message.user_ids).to eq([acting_user.id])
       end
     end
