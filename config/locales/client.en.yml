@@ -1,6 +1,11 @@
 en:
   admin_js:
     admin:
+      api:
+        scopes:
+          descriptions:
+            discourse_suggested_edits:
+              suggest_edits: "Suggest edits on posts (list, view, create, update, withdraw)."
       site_settings:
         categories:
           discourse_suggested_edits: "Suggested Edits"

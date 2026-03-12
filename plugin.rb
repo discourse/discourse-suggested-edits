@@ -23,9 +23,28 @@ after_initialize do
   require_relative "lib/discourse_suggested_edits/change_extractor"
   require_relative "lib/discourse_suggested_edits/payload_validator"
   require_relative "lib/discourse_suggested_edits/post_edit_guard"
+  require_relative "lib/discourse_suggested_edits/guardian_extensions"
   require_relative "lib/discourse_suggested_edits/publisher"
 
-  reloadable_patch { Post.has_many :suggested_edits, dependent: :destroy }
+  add_api_key_scope(
+    :discourse_suggested_edits,
+    {
+      suggest_edits: {
+        actions: %w[
+          discourse_suggested_edits/suggestions#index
+          discourse_suggested_edits/suggestions#show
+          discourse_suggested_edits/suggestions#create
+          discourse_suggested_edits/suggestions#update
+          discourse_suggested_edits/suggestions#destroy
+        ],
+      },
+    },
+  )
+
+  reloadable_patch do
+    Post.has_many :suggested_edits, dependent: :destroy
+    Guardian.prepend(DiscourseSuggestedEdits::GuardianExtensions)
+  end
 
   add_to_class(:topic, :preload_suggested_edit_count) do |count|
     @suggested_edit_count = count
@@ -55,60 +74,6 @@ after_initialize do
   add_to_class(:topic, :own_pending_suggested_edit_id) { @own_pending_suggested_edit_id }
   add_to_class(:topic, :own_pending_suggested_edit_id_loaded?) do
     defined?(@own_pending_suggested_edit_id_loaded) && @own_pending_suggested_edit_id_loaded
-  end
-
-  add_to_class(:guardian, :can_suggest_edit?) do |post|
-    return false unless SiteSetting.suggested_edits_enabled
-    return false unless user
-    return false unless post && can_see?(post)
-    return false unless post.post_number == 1
-
-    suggest_group_ids = SiteSetting.suggested_edits_suggest_group_map
-    return false if suggest_group_ids.blank?
-    return false unless user.groups.where(id: suggest_group_ids).exists?
-
-    topic = post.topic
-    return false unless topic
-
-    included_category_ids = SiteSetting.suggested_edits_included_categories_map
-    included_tag_names =
-      SiteSetting.suggested_edits_included_tags.to_s.split("|").map(&:strip).reject(&:blank?)
-
-    category_ok =
-      included_category_ids.present? && included_category_ids.include?(topic.category_id)
-    tag_ok = included_tag_names.present? && (topic.tags.pluck(:name) & included_tag_names).present?
-
-    category_ok || tag_ok
-  end
-
-  add_to_class(:guardian, :can_update_suggested_edit?) do |suggested_edit|
-    return false unless SiteSetting.suggested_edits_enabled
-    return false unless user
-    return false unless suggested_edit&.post && can_see?(suggested_edit.post)
-    return false unless suggested_edit.user_id == user.id
-
-    suggested_edit.pending?
-  end
-
-  add_to_class(:guardian, :can_review_suggested_edits_in_topic_list?) do
-    return false unless SiteSetting.suggested_edits_enabled
-    return false unless user
-    return true if user.admin?
-
-    review_group_ids = SiteSetting.suggested_edits_review_group_map
-    review_group_ids.present? && user.groups.where(id: review_group_ids).exists?
-  end
-
-  add_to_class(:guardian, :can_review_suggested_edits_for_post?) do |post|
-    return false unless SiteSetting.suggested_edits_enabled
-    return false unless user
-    return false unless post && can_see?(post)
-
-    can_review_suggested_edits_in_topic_list? || post&.user_id == user.id
-  end
-
-  add_to_class(:guardian, :can_review_suggested_edit?) do |suggested_edit|
-    can_review_suggested_edits_for_post?(suggested_edit.post)
   end
 
   TopicView.on_preload do |topic_view|
