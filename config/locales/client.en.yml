@@ -27,13 +27,13 @@ en:
         reject: "Reject"
         apply_accepted: "Apply Accepted"
         accept_all: "Accept All"
-        dismiss: "Dismiss"
+        discard: "Discard Suggestion"
         expand_above: "Expand above"
         expand_below: "Expand below"
         no_changes_accepted: "Accept at least one change to apply."
         stale_warning: "This post was edited since this suggestion was made. Changes may no longer apply cleanly."
         applied_success: "Suggested edit applied successfully."
-        dismissed_success: "Suggested edit dismissed."
+        discarded_success: "Suggested edit discarded."
       banner:
         pending_review:
           one: "%{count} suggested edit"

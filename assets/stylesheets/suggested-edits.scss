@@ -126,6 +126,10 @@
     margin-inline-start: auto;
   }
 
+  &__discard {
+    min-width: 12rem;
+  }
+
   &__footer-primary .btn-primary {
     min-width: 9.5rem;
   }

@@ -154,7 +154,7 @@ export default class SuggestedEditsReviewModal extends Component {
       await dismissSuggestedEdit(this.suggestion.id);
       this.toasts.success({
         data: {
-          message: i18n("discourse_suggested_edits.review.dismissed_success"),
+          message: i18n("discourse_suggested_edits.review.discarded_success"),
         },
         duration: "short",
       });
@@ -274,8 +274,9 @@ export default class SuggestedEditsReviewModal extends Component {
             <div class="suggested-edits-review-modal__footer-secondary">
               <DButton
                 @action={{this.dismiss}}
-                @label="discourse_suggested_edits.review.dismiss"
-                class="btn-flat btn-danger"
+                @icon="trash-can"
+                @label="discourse_suggested_edits.review.discard"
+                class="btn-danger suggested-edits-review-modal__discard"
               />
             </div>
             <div class="suggested-edits-review-modal__footer-primary">

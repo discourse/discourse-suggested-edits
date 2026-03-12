@@ -4,6 +4,11 @@ import {
   SUGGEST_EDIT_ACTION,
 } from "discourse/plugins/discourse-suggested-edits/discourse/lib/suggested-edits-api";
 
+function buildSuggestedEditDraftKey(postId) {
+  // Suggested edits never persist drafts, so use a one-shot key per session.
+  return `suggestEdit_${postId}_${Date.now()}`;
+}
+
 export async function openSuggestedEditComposer(composer, post) {
   const existingSuggestionId = post.topic?.own_pending_suggested_edit_id;
   const postResult = await ajax(`/posts/${post.id}.json`);
@@ -11,11 +16,12 @@ export async function openSuggestedEditComposer(composer, post) {
 
   const composerOptions = {
     action: SUGGEST_EDIT_ACTION,
-    draftKey: `suggestEdit_${post.id}`,
+    draftKey: buildSuggestedEditDraftKey(post.id),
     draftSequence: 0,
     post,
     topic: post.topic,
     reply: originalRaw,
+    warningsDisabled: true,
     metaData: {
       postId: post.id,
       originalRaw,

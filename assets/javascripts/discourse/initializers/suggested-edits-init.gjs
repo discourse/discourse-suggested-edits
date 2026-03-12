@@ -10,6 +10,14 @@ import {
   updateSuggestedEdit,
 } from "discourse/plugins/discourse-suggested-edits/discourse/lib/suggested-edits-api";
 
+function isSuggestedEditAction(action) {
+  return action === SUGGEST_EDIT_ACTION;
+}
+
+function isSuggestedEditModel(model) {
+  return isSuggestedEditAction(model?.action);
+}
+
 function initializePlugin(api) {
   const siteSettings = api.container.lookup("service:site-settings");
   const currentUser = api.getCurrentUser();
@@ -53,24 +61,28 @@ function initializePlugin(api) {
     pluginId: "discourse-suggested-edits",
 
     async open(opts) {
-      if (opts.action === SUGGEST_EDIT_ACTION && this.model) {
+      if (isSuggestedEditAction(opts.action) && this.model) {
         this.model.set("disableDrafts", true);
         this.skipAutoSave = true;
         this.close();
         this.skipAutoSave = false;
       }
       setSuggestEditActive(
-        opts.action === SUGGEST_EDIT_ACTION,
+        isSuggestedEditAction(opts.action),
         opts.metaData?.originalRaw
       );
       await this._super(opts);
-      if (this.model?.action === SUGGEST_EDIT_ACTION) {
-        this.model.set("disableDrafts", true);
+      if (isSuggestedEditModel(this.model)) {
+        this.model.setProperties({
+          disableDrafts: true,
+          draftStatus: null,
+          draftConflictUser: null,
+        });
       }
     },
 
     cancelComposer(opts) {
-      if (this.model?.action === SUGGEST_EDIT_ACTION) {
+      if (isSuggestedEditModel(this.model)) {
         setSuggestEditActive(false);
         this.skipAutoSave = true;
         this.close();
@@ -82,14 +94,22 @@ function initializePlugin(api) {
     },
 
     destroyDraft() {
-      if (this.model?.action === SUGGEST_EDIT_ACTION) {
+      if (isSuggestedEditModel(this.model)) {
         return Promise.resolve();
       }
       return this._super();
     },
 
+    _saveDraft(showToast = false) {
+      if (isSuggestedEditModel(this.model)) {
+        return Promise.resolve();
+      }
+
+      return this._super(showToast);
+    },
+
     save(force, options = {}) {
-      if (this.model?.action === SUGGEST_EDIT_ACTION) {
+      if (isSuggestedEditModel(this.model)) {
         return this._saveSuggestedEdit();
       }
       return this._super(force, options);
