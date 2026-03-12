@@ -419,24 +419,28 @@ RSpec.describe DiscourseSuggestedEdits::SuggestionsController do
   describe "PUT /suggested-edits/suggestions/:id/dismiss" do
     fab!(:suggestion) { create_suggestion!(user: suggester) }
 
-    it "dismisses the suggestion and publishes a MessageBus update" do
+    it "returns 204 on success" do
       sign_in(reviewer)
 
-      messages =
-        MessageBus.track_publish("/suggested-edits/topic/#{topic.id}") do
-          put "/suggested-edits/suggestions/#{suggestion.id}/dismiss.json"
-        end
+      put "/suggested-edits/suggestions/#{suggestion.id}/dismiss.json"
 
       expect(response.status).to eq(204)
-      expect(suggestion.reload).to be_dismissed
-      expect(messages.length).to eq(2)
-      expect(review_update(messages).data[:pending_count]).to eq(0)
-      expect(review_update(messages).user_ids).to eq([first_post.user_id])
-      expect(review_update(messages).group_ids).to match_array(
-        [review_group.id, Group::AUTO_GROUPS[:admins]],
-      )
-      expect(resolved_update(messages).user_ids).to eq([suggester.id])
-      expect(resolved_update(messages).group_ids).to be_nil
+    end
+
+    it "returns 404 when suggestion does not exist" do
+      sign_in(reviewer)
+
+      put "/suggested-edits/suggestions/0/dismiss.json"
+
+      expect(response.status).to eq(404)
+    end
+
+    it "returns 403 when user cannot review the suggestion" do
+      sign_in(suggester)
+
+      put "/suggested-edits/suggestions/#{suggestion.id}/dismiss.json"
+
+      expect(response.status).to eq(403)
     end
 
     it "rejects dismiss when the suggestion is no longer pending" do

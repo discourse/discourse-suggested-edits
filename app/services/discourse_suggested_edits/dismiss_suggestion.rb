@@ -1,59 +1,49 @@
 # frozen_string_literal: true
 
-class DiscourseSuggestedEdits::DismissSuggestion
-  include Service::Base
+module DiscourseSuggestedEdits
+  class DismissSuggestion
+    include Service::Base
 
-  params do
-    attribute :suggestion_id, :integer
+    params do
+      attribute :suggestion_id, :integer
 
-    validates :suggestion_id, presence: true
-  end
-
-  model :suggested_edit
-  policy :can_review_suggested_edit
-
-  lock(:suggested_edit) do
-    transaction do
-      step :lock_records
-      step :ensure_pending
-      step :dismiss
+      validates :suggestion_id, presence: true
     end
-  end
 
-  step :publish_update
+    model :suggested_edit
+    policy :can_see_post
+    policy :can_review_suggested_edit
+    policy :suggestion_is_pending
+    step :dismiss
+    step :publish_update
 
-  private
+    private
 
-  def fetch_suggested_edit(params:, guardian:)
-    suggested_edit = SuggestedEdit.includes(:post).find_by(id: params.suggestion_id)
-    return if suggested_edit.blank? || !guardian.can_see?(suggested_edit.post)
+    def fetch_suggested_edit(params:)
+      SuggestedEdit.includes(:post).find_by(id: params.suggestion_id)
+    end
 
-    suggested_edit
-  end
+    def can_see_post(guardian:, suggested_edit:)
+      guardian.can_see?(suggested_edit.post)
+    end
 
-  def can_review_suggested_edit(guardian:, suggested_edit:)
-    guardian.can_review_suggested_edit?(suggested_edit)
-  end
+    def can_review_suggested_edit(guardian:, suggested_edit:)
+      guardian.can_review_suggested_edit?(suggested_edit)
+    end
 
-  def lock_records(suggested_edit:)
-    suggested_edit.lock!
-    suggested_edit.post.lock!
-  end
+    def suggestion_is_pending(suggested_edit:)
+      suggested_edit.pending?
+    end
 
-  def ensure_pending(suggested_edit:)
-    return if suggested_edit.pending?
+    def dismiss(suggested_edit:)
+      suggested_edit.update!(status: :dismissed)
+    end
 
-    fail!(I18n.t("discourse_suggested_edits.errors.not_pending"))
-  end
-
-  def dismiss(suggested_edit:)
-    suggested_edit.update!(status: :dismissed)
-  end
-
-  def publish_update(suggested_edit:)
-    DiscourseSuggestedEdits::Publisher.publish_post_update(
-      post: suggested_edit.post,
-      resolved_user_ids: [suggested_edit.user_id],
-    )
+    def publish_update(suggested_edit:)
+      DiscourseSuggestedEdits::Publisher.publish_post_update(
+        post: suggested_edit.post,
+        resolved_user_ids: [suggested_edit.user_id],
+      )
+    end
   end
 end

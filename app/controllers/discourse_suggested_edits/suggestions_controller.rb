@@ -68,7 +68,7 @@ module DiscourseSuggestedEdits
 
     def destroy
       DiscourseSuggestedEdits::WithdrawSuggestion.call(
-        service_params.deep_merge(params: { suggestion_id: params[:id] })
+        service_params.deep_merge(params: { suggestion_id: params[:id] }),
       ) do
         on_success { head :no_content }
         on_model_not_found(:suggested_edit) { raise Discourse::NotFound }
@@ -95,14 +95,22 @@ module DiscourseSuggestedEdits
     end
 
     def dismiss
-      DiscourseSuggestedEdits::DismissSuggestion.call(guardian:, params: suggestion_id_params) do
+      DiscourseSuggestedEdits::DismissSuggestion.call(
+        service_params.deep_merge(params: { suggestion_id: params[:id] }),
+      ) do
         on_success { head :no_content }
         on_model_not_found(:suggested_edit) { raise Discourse::NotFound }
+        on_failed_policy(:can_see_post) { raise Discourse::NotFound }
         on_failed_policy(:can_review_suggested_edit) { raise Discourse::InvalidAccess }
+        on_failed_policy(:suggestion_is_pending) do
+          render_json_error(
+            I18n.t("discourse_suggested_edits.errors.not_pending"),
+            status: :conflict,
+          )
+        end
         on_failed_contract do |contract|
           render_json_error(contract.errors.full_messages.first, status: :bad_request)
         end
-        on_failed_step(:ensure_pending) { |step| render_json_error(step.error, status: :conflict) }
       end
     end
 
@@ -119,10 +127,6 @@ module DiscourseSuggestedEdits
 
     def update_params
       params.permit(:raw, :reason).merge(suggestion_id: params[:id])
-    end
-
-    def suggestion_id_params
-      params.permit.merge(suggestion_id: params[:id])
     end
 
     def apply_params
