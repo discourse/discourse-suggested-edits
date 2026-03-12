@@ -1,0 +1,20 @@
+en:
+  site_settings:
+    suggested_edits_enabled: "Enable the suggested edits plugin"
+    suggested_edits_suggest_group: "Groups whose members can suggest edits"
+    suggested_edits_review_group: "Groups whose members can review and apply suggested edits (post authors can always review their own)"
+    suggested_edits_included_categories: "Categories where suggested edits are enabled"
+    suggested_edits_included_tags: "Tags on topics where suggested edits are enabled"
+    suggested_edits_max_creates_per_minute: "Maximum suggested edit creations per user per minute"
+    suggested_edits_max_revisions_per_minute: "Maximum suggested edit revisions per user per minute"
+  discourse_suggested_edits:
+    applied_reason: "Applied suggested edit from @%{username}"
+    errors:
+      no_changes: "The suggestion must differ from the original post."
+      no_selected_changes: "Select at least one valid change to apply."
+      invalid_selected_changes: "One or more selected changes are invalid."
+      not_first_post: "Suggested edits are only supported on first posts."
+      not_pending: "This suggested edit is no longer pending."
+      not_permitted: "You are not permitted to perform this action."
+      already_pending: "You already have a pending suggested edit for this post."
+      stale: "This suggestion is stale because the post has been edited since it was made."

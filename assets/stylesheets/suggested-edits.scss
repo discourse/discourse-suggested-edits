@@ -1,0 +1,415 @@
+// Suggest Edit Modal
+.suggest-edit-modal {
+  --suggest-edit-modal-min-height: 25rem;
+  --suggest-edit-editor-min-height: 21.875rem;
+  --suggest-edit-section-gap: var(--space-3);
+
+  .d-modal__body {
+    min-height: var(--suggest-edit-modal-min-height);
+  }
+
+  &__editor {
+    min-height: var(--suggest-edit-editor-min-height);
+  }
+
+  &__reason {
+    margin-top: var(--suggest-edit-section-gap);
+
+    label {
+      display: block;
+      margin-bottom: var(--space-1);
+      font-weight: 600;
+    }
+  }
+
+  &__reason-input {
+    width: 100%;
+    padding: var(--space-2);
+  }
+}
+
+// Review Modal
+.suggested-edits-review-modal {
+  --suggested-edits-gap: var(--space-3);
+  --suggested-edits-border: var(--primary-low);
+  --suggested-edits-muted: var(--primary-medium);
+  --suggested-edits-muted-surface: var(--primary-very-low);
+
+  .d-modal__container {
+    width: min(90vw, 56.25rem);
+    max-width: 56.25rem;
+  }
+
+  &__meta {
+    display: flex;
+    align-items: center;
+    gap: var(--suggested-edits-gap);
+    margin-bottom: var(--space-4);
+    flex-wrap: wrap;
+  }
+
+  &__author {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    min-width: 0;
+    font-weight: 600;
+  }
+
+  &__author-name {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  &__date {
+    color: var(--suggested-edits-muted);
+    font-size: var(--font-down-1);
+  }
+
+  &__nav {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    margin-inline-start: auto;
+  }
+
+  &__nav-label {
+    min-width: 3rem;
+    color: var(--suggested-edits-muted);
+    font-size: var(--font-down-1);
+    text-align: center;
+  }
+
+  &__reason {
+    margin-bottom: var(--space-4);
+    padding: var(--space-3) var(--space-4);
+    background: var(--suggested-edits-muted-surface);
+    border: 1px solid var(--suggested-edits-border);
+    border-radius: var(--d-border-radius);
+  }
+
+  &__summary {
+    margin: 0 0 var(--space-4);
+    color: var(--suggested-edits-muted);
+    font-size: var(--font-down-1);
+    line-height: 1.5;
+  }
+
+  &__changes {
+    display: flex;
+    flex-direction: column;
+    gap: var(--suggested-edits-gap);
+  }
+
+  .d-modal__footer {
+    border-top: 1px solid var(--suggested-edits-border);
+    background: var(--secondary);
+  }
+
+  &__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    width: 100%;
+  }
+
+  &__footer-primary,
+  &__footer-secondary {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+  }
+
+  &__footer-primary {
+    margin-inline-start: auto;
+  }
+
+  &__footer-primary .btn-primary {
+    min-width: 9.5rem;
+  }
+
+  @media (width <= 600px) {
+    &__footer,
+    &__footer-primary,
+    &__footer-secondary {
+      width: 100%;
+    }
+
+    &__footer {
+      flex-direction: column-reverse;
+      align-items: stretch;
+    }
+
+    &__footer-primary,
+    &__footer-secondary {
+      justify-content: stretch;
+      margin-inline-start: 0;
+    }
+
+    &__footer-primary .btn,
+    &__footer-secondary .btn {
+      flex: 1 1 0;
+      justify-content: center;
+    }
+  }
+}
+
+// Topic Page Banners
+.suggested-edits-banner {
+  --suggested-edits-banner-background: var(--tertiary-very-low);
+  --suggested-edits-banner-border: var(--tertiary-low);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin: var(--space-2) 0;
+  padding: var(--space-3) var(--space-4);
+  background: var(--suggested-edits-banner-background);
+  border: 1px solid var(--suggested-edits-banner-border);
+  border-radius: var(--d-border-radius);
+  flex-wrap: wrap;
+
+  &--own {
+    --suggested-edits-banner-background: var(--highlight-bg);
+    --suggested-edits-banner-border: var(--highlight-medium);
+  }
+
+  &__content {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-width: 0;
+  }
+
+  &__text {
+    font-size: var(--font-down-1);
+    font-weight: 500;
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-inline-start: auto;
+    flex-wrap: wrap;
+  }
+
+  &__action {
+    justify-content: center;
+  }
+
+  @media (width <= 600px) {
+    &__content,
+    &__actions {
+      width: 100%;
+    }
+
+    &__actions {
+      margin-inline-start: 0;
+    }
+  }
+}
+
+// Review Change Item
+.suggested-edit-change-item {
+  --suggested-edit-change-accent: var(--primary-low-mid);
+  --suggested-edit-change-background: var(--secondary);
+  --suggested-edit-change-border: var(--primary-low);
+  --suggested-edit-change-muted: var(--primary-medium);
+  --suggested-edit-change-toolbar: var(--primary-very-low);
+  --suggested-edit-change-rail: var(--primary-low);
+  background: var(--suggested-edit-change-background);
+  border: 1px solid var(--suggested-edit-change-border);
+  border-inline-start: 0.25rem solid var(--suggested-edit-change-accent);
+  border-radius: 0;
+  overflow: hidden;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+
+  &--accepted {
+    --suggested-edit-change-accent: var(--success);
+    --suggested-edit-change-background: var(--success-very-low);
+  }
+
+  &--rejected {
+    --suggested-edit-change-accent: var(--danger);
+    --suggested-edit-change-background: var(--danger-very-low);
+  }
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__expand {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    padding: var(--space-1) var(--space-3);
+  }
+
+  &__expand-control {
+    padding-inline: var(--space-1);
+    color: var(--suggested-edit-change-muted);
+    font-size: var(--font-down-2);
+
+    &:hover,
+    &:focus-visible {
+      color: var(--primary-high);
+    }
+  }
+
+  &__diff {
+    padding: var(--space-3) var(--space-4);
+    overflow-x: auto;
+    font-family: var(--d-font-family--monospace);
+    font-size: var(--font-down-1);
+    line-height: 1.5;
+
+    .inline-diff {
+      display: inline;
+    }
+
+    .diff-del,
+    .diff-ins {
+      border-radius: var(--d-border-radius);
+    }
+
+    .diff-del {
+      background-color: var(--danger-low);
+      color: var(--danger);
+      text-decoration: line-through;
+    }
+
+    .diff-ins {
+      background-color: var(--success-low);
+      color: var(--success);
+    }
+  }
+
+  &__context {
+    display: block;
+    margin: 0;
+    padding-block: var(--space-1);
+    color: var(--suggested-edit-change-muted);
+    font: inherit;
+    white-space: pre-wrap;
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-4);
+    border-top: 1px solid var(--suggested-edit-change-border);
+    background: var(--secondary);
+    flex-wrap: wrap;
+  }
+
+  &__actions-right {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-inline-start: auto;
+    flex-wrap: wrap;
+  }
+
+  &__decision-actions {
+    display: flex;
+    gap: var(--space-1);
+    flex-wrap: wrap;
+  }
+
+  &__accept,
+  &__reject {
+    min-width: 7rem;
+    justify-content: center;
+  }
+
+  &--accepted &__accept {
+    background: var(--success-low);
+    border-color: var(--success-low);
+    color: var(--success);
+
+    .d-icon {
+      color: var(--success);
+    }
+  }
+
+  &--rejected &__reject {
+    background: var(--danger-low);
+    border-color: var(--danger-low-mid);
+    color: var(--danger);
+
+    .d-icon {
+      color: var(--danger);
+    }
+  }
+
+  @media (width <= 600px) {
+    &__actions-right {
+      width: 100%;
+      margin-inline-start: 0;
+    }
+
+    &__decision-actions {
+      width: 100%;
+    }
+
+    &__accept,
+    &__reject {
+      flex: 1 1 0;
+    }
+  }
+}
+
+// Stale Warning
+.suggested-edits-stale-warning {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  flex-wrap: wrap;
+}
+
+// ProseMirror Edit Markers
+.ProseMirror > .suggested-edit-changed-block {
+  position: relative;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    left: calc(-1 * var(--space-2) - 1px);
+    width: 0.1875rem;
+    background: var(--tertiary);
+    border-radius: var(--d-border-radius);
+  }
+}
+
+.ProseMirror .suggested-edit-changed-text,
+.ProseMirror .suggested-edit-new-block {
+  background: var(--tertiary-very-low);
+  border-radius: var(--d-border-radius);
+}
+
+// Topic List Badge
+.suggested-edits-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: var(--space-4);
+  margin-left: var(--space-2);
+  padding: 0 var(--space-1);
+  font-size: var(--font-down-2);
+  color: var(--tertiary);
+  background: var(--tertiary-very-low);
+  border: 1px solid var(--tertiary-low);
+  border-radius: var(--d-border-radius);
+}

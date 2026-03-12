@@ -1,0 +1,48 @@
+en:
+  admin_js:
+    admin:
+      site_settings:
+        categories:
+          discourse_suggested_edits: "Suggested Edits"
+  js:
+    discourse_suggested_edits:
+      suggest_edit: "Suggest Edit"
+      suggest_edit_title: "Suggest an edit to this post"
+      composer:
+        action_title: "Suggesting an Edit"
+        save_label: "Submit Suggestion"
+        no_changes: "No changes were made to the post."
+      modal:
+        review_title: "Review Suggested Edit"
+      review:
+        suggested_by: "Suggested by"
+        reason: "Reason"
+        instructions: "Review each proposed change below. Use the controls above or below a change to reveal more of the surrounding post before applying."
+        accept: "Accept"
+        reject: "Reject"
+        apply_accepted: "Apply Accepted"
+        accept_all: "Accept All"
+        dismiss: "Dismiss"
+        expand_above: "Expand above"
+        expand_below: "Expand below"
+        no_changes_accepted: "Accept at least one change to apply."
+        stale_warning: "This post was edited since this suggestion was made. Changes may no longer apply cleanly."
+        applied_success: "Suggested edit applied successfully."
+        dismissed_success: "Suggested edit dismissed."
+      banner:
+        pending_review:
+          one: "%{count} suggested edit"
+          other: "%{count} suggested edits"
+        review: "Review"
+        own_pending: "You have a pending suggested edit"
+        edit: "Edit"
+        withdraw: "Withdraw"
+        withdraw_confirm: "Are you sure you want to withdraw your suggested edit?"
+      toast:
+        created: "Edit suggested!"
+        updated: "Suggestion updated!"
+        withdrawn: "Suggestion withdrawn."
+      badge:
+        title:
+          one: "%{count} suggested edit"
+          other: "%{count} suggested edits"

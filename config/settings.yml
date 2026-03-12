@@ -1,0 +1,32 @@
+discourse_suggested_edits:
+  suggested_edits_enabled:
+    default: false
+    client: true
+  suggested_edits_suggest_group:
+    type: group_list
+    list_type: compact
+    default: ""
+    allow_any: false
+    client: true
+  suggested_edits_review_group:
+    type: group_list
+    list_type: compact
+    default: ""
+    allow_any: false
+    client: true
+  suggested_edits_included_categories:
+    type: category_list
+    default: ""
+    client: true
+  suggested_edits_included_tags:
+    type: tag_list
+    default: ""
+    client: true
+  suggested_edits_max_creates_per_minute:
+    type: integer
+    default: 5
+    min: 1
+  suggested_edits_max_revisions_per_minute:
+    type: integer
+    default: 10
+    min: 1
