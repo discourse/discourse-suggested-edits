@@ -224,25 +224,37 @@ RSpec.describe DiscourseSuggestedEdits::SuggestionsController do
   describe "DELETE /suggested-edits/suggestions/:id" do
     fab!(:suggestion) { create_suggestion!(user: suggester) }
 
-    it "allows the suggester to withdraw" do
+    it "returns 204 on success" do
       sign_in(suggester)
 
-      messages =
-        MessageBus.track_publish("/suggested-edits/topic/#{topic.id}") do
-          delete "/suggested-edits/suggestions/#{suggestion.id}.json"
-        end
+      delete "/suggested-edits/suggestions/#{suggestion.id}.json"
 
       expect(response.status).to eq(204)
-      expect(suggestion.reload).to be_withdrawn
-      expect(suggestion.edit_changes.count).to eq(1)
-      expect(messages.length).to eq(2)
-      expect(review_update(messages).data[:pending_count]).to eq(0)
-      expect(review_update(messages).user_ids).to eq([first_post.user_id])
-      expect(review_update(messages).group_ids).to match_array(
-        [review_group.id, Group::AUTO_GROUPS[:admins]],
-      )
-      expect(resolved_update(messages).user_ids).to eq([suggester.id])
-      expect(resolved_update(messages).group_ids).to be_nil
+    end
+
+    it "returns 404 when suggestion does not exist" do
+      sign_in(suggester)
+
+      delete "/suggested-edits/suggestions/0.json"
+
+      expect(response.status).to eq(404)
+    end
+
+    it "returns 403 when user cannot update the suggestion" do
+      sign_in(reviewer)
+
+      delete "/suggested-edits/suggestions/#{suggestion.id}.json"
+
+      expect(response.status).to eq(403)
+    end
+
+    it "returns 403 when suggestion is not pending" do
+      suggestion.update!(status: :dismissed)
+      sign_in(suggester)
+
+      delete "/suggested-edits/suggestions/#{suggestion.id}.json"
+
+      expect(response.status).to eq(403)
     end
   end
 

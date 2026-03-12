@@ -67,7 +67,9 @@ module DiscourseSuggestedEdits
     end
 
     def destroy
-      DiscourseSuggestedEdits::WithdrawSuggestion.call(guardian:, params: suggestion_id_params) do
+      DiscourseSuggestedEdits::WithdrawSuggestion.call(
+        service_params.deep_merge(params: { suggestion_id: params[:id] })
+      ) do
         on_success { head :no_content }
         on_model_not_found(:suggested_edit) { raise Discourse::NotFound }
         on_failed_policy(:can_update_suggested_edit) { raise Discourse::InvalidAccess }
