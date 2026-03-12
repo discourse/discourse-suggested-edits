@@ -22,7 +22,6 @@ after_initialize do
   require_relative "lib/discourse_suggested_edits/change_applier"
   require_relative "lib/discourse_suggested_edits/change_extractor"
   require_relative "lib/discourse_suggested_edits/payload_validator"
-  require_relative "lib/discourse_suggested_edits/post_edit_guard"
   require_relative "lib/discourse_suggested_edits/guardian_extensions"
   require_relative "lib/discourse_suggested_edits/publisher"
 
@@ -76,13 +75,33 @@ after_initialize do
     defined?(@own_pending_suggested_edit_id_loaded) && @own_pending_suggested_edit_id_loaded
   end
 
+  add_to_class(:topic, :preload_can_review_suggested_edits_for_first_post) do |value|
+    @can_review_suggested_edits_for_first_post = value
+    @can_review_suggested_edits_for_first_post_loaded = true
+  end
+
+  add_to_class(:topic, :can_review_suggested_edits_for_first_post) do
+    @can_review_suggested_edits_for_first_post
+  end
+
+  add_to_class(:topic, :can_review_suggested_edits_for_first_post_loaded?) do
+    defined?(@can_review_suggested_edits_for_first_post_loaded) &&
+      @can_review_suggested_edits_for_first_post_loaded
+  end
+
   TopicView.on_preload do |topic_view|
     next unless SiteSetting.suggested_edits_enabled
 
     first_post = topic_view.topic.first_post
     next unless first_post
 
-    if topic_view.guardian.can_review_suggested_edits_for_post?(first_post)
+    can_review_suggested_edits_for_first_post =
+      topic_view.guardian.can_review_suggested_edits_for_post?(first_post)
+    topic_view.topic.preload_can_review_suggested_edits_for_first_post(
+      can_review_suggested_edits_for_first_post,
+    )
+
+    if can_review_suggested_edits_for_first_post
       topic_view.topic.preload_pending_suggested_edit_count(
         SuggestedEdit.pending.where(post_id: first_post.id).count,
       )
@@ -129,7 +148,11 @@ after_initialize do
     :pending_suggested_edit_count,
     include_condition: -> do
       SiteSetting.suggested_edits_enabled && object.topic.first_post.present? &&
-        scope.can_review_suggested_edits_for_post?(object.topic.first_post)
+        if object.topic.can_review_suggested_edits_for_first_post_loaded?
+          object.topic.can_review_suggested_edits_for_first_post
+        else
+          scope.can_review_suggested_edits_for_post?(object.topic.first_post)
+        end
     end,
   ) do
     if object.topic.pending_suggested_edit_count_loaded?
@@ -168,9 +191,9 @@ after_initialize do
     end
   end
 
-  on(:post_edited) do |post|
+  on(:post_edited) do |post, _, revisor|
     next unless post.post_number == 1
-    next if DiscourseSuggestedEdits::PostEditGuard.suppressed?(post.id)
+    next if revisor&.opts&.dig(:suggested_edit)
 
     stale_suggestions =
       SuggestedEdit.pending.where(post_id: post.id).where("base_post_version < ?", post.version)

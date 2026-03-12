@@ -129,19 +129,18 @@ class DiscourseSuggestedEdits::ApplySuggestion
 
   def apply_post_revision!(suggested_edit, new_raw)
     revised =
-      DiscourseSuggestedEdits::PostEditGuard.suppress(suggested_edit.post_id) do
-        PostRevisor.new(suggested_edit.post).revise!(
-          suggested_edit.user,
-          { raw: new_raw },
-          edit_reason:
-            I18n.t(
-              "discourse_suggested_edits.applied_reason",
-              username: suggested_edit.user.username,
-            ),
-          force_new_version: true,
-          bypass_rate_limiter: true,
-        )
-      end
+      PostRevisor.new(suggested_edit.post).revise!(
+        suggested_edit.user,
+        { raw: new_raw },
+        edit_reason:
+          I18n.t(
+            "discourse_suggested_edits.applied_reason",
+            username: suggested_edit.user.username,
+          ),
+        force_new_version: true,
+        bypass_rate_limiter: true,
+        suggested_edit: true,
+      )
 
     return if revised
 

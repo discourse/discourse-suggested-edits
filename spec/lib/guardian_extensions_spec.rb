@@ -77,6 +77,20 @@ RSpec.describe DiscourseSuggestedEdits::GuardianExtensions do
       SiteSetting.suggested_edits_included_tags = ""
       expect(suggester.guardian.can_suggest_edit?(first_post)).to eq(false)
     end
+
+    it "memoizes suggest group membership checks on a guardian instance" do
+      guardian = suggester.guardian
+
+      queries = track_sql_queries { 3.times { guardian.can_suggest_edit?(first_post) } }
+
+      membership_queries =
+        queries.filter do |query|
+          query.include?(%("group_users"."user_id" = #{suggester.id})) &&
+            query.include?(%("groups"."id" = #{suggest_group.id}))
+        end
+
+      expect(membership_queries.size).to eq(1)
+    end
   end
 
   describe "#can_update_suggested_edit?" do
@@ -146,6 +160,20 @@ RSpec.describe DiscourseSuggestedEdits::GuardianExtensions do
       SiteSetting.suggested_edits_review_group = ""
       expect(reviewer.guardian.can_review_suggested_edits_in_topic_list?).to eq(false)
     end
+
+    it "memoizes review group membership checks on a guardian instance" do
+      guardian = reviewer.guardian
+
+      queries = track_sql_queries { 3.times { guardian.can_review_suggested_edits_in_topic_list? } }
+
+      membership_queries =
+        queries.filter do |query|
+          query.include?(%("group_users"."user_id" = #{reviewer.id})) &&
+            query.include?(%("groups"."id" = #{review_group.id}))
+        end
+
+      expect(membership_queries.size).to eq(1)
+    end
   end
 
   describe "#can_review_suggested_edits_for_post?" do
@@ -155,6 +183,21 @@ RSpec.describe DiscourseSuggestedEdits::GuardianExtensions do
 
     it "returns true for the post author even without review group membership" do
       expect(first_post.user.guardian.can_review_suggested_edits_for_post?(first_post)).to eq(true)
+    end
+
+    it "returns true for the post author without checking review group membership" do
+      author = first_post.user
+
+      queries =
+        track_sql_queries { author.guardian.can_review_suggested_edits_for_post?(first_post) }
+
+      review_group_queries =
+        queries.filter do |query|
+          query.include?(%("group_users"."user_id" = #{author.id})) &&
+            query.include?(%("groups"."id" = #{review_group.id}))
+        end
+
+      expect(review_group_queries).to be_empty
     end
 
     it "returns false when the plugin is disabled" do

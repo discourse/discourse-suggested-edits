@@ -10,7 +10,7 @@ module DiscourseSuggestedEdits
 
       suggest_group_ids = SiteSetting.suggested_edits_suggest_group_map
       return false if suggest_group_ids.blank?
-      return false unless user.groups.where(id: suggest_group_ids).exists?
+      return false unless user_in_suggested_edits_group?(suggest_group_ids)
 
       topic = post.topic
       return false unless topic
@@ -42,7 +42,7 @@ module DiscourseSuggestedEdits
       return true if user.admin?
 
       review_group_ids = SiteSetting.suggested_edits_review_group_map
-      review_group_ids.present? && user.groups.where(id: review_group_ids).exists?
+      review_group_ids.present? && user_in_suggested_edits_group?(review_group_ids)
     end
 
     def can_review_suggested_edits_for_post?(post)
@@ -50,11 +50,19 @@ module DiscourseSuggestedEdits
       return false unless user
       return false unless post && can_see?(post)
 
-      can_review_suggested_edits_in_topic_list? || post&.user_id == user.id
+      post&.user_id == user.id || can_review_suggested_edits_in_topic_list?
     end
 
     def can_review_suggested_edit?(suggested_edit)
       can_review_suggested_edits_for_post?(suggested_edit.post)
+    end
+
+    private
+
+    def user_in_suggested_edits_group?(group_ids)
+      @suggested_edits_group_memberships ||= {}
+      cache_key = group_ids.sort.join("|")
+      @suggested_edits_group_memberships[cache_key] ||= user.groups.where(id: group_ids).exists?
     end
   end
 end
