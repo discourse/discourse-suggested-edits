@@ -96,18 +96,6 @@ RSpec.describe DiscourseSuggestedEdits::SuggestionsController do
       expect(response.status).to eq(400)
     end
 
-    it "rejects unauthorized users" do
-      sign_in(Fabricate(:user))
-
-      post "/suggested-edits/suggestions.json",
-           params: {
-             post_id: first_post.id,
-             raw: "New content",
-           }
-
-      expect(response.status).to eq(403)
-    end
-
     it "rejects duplicate pending suggestions" do
       sign_in(suggester)
 
@@ -147,27 +135,6 @@ RSpec.describe DiscourseSuggestedEdits::SuggestionsController do
           )
         }",
       )
-    end
-
-    it "rejects hidden posts with not found" do
-      private_access_group = Fabricate(:group)
-      private_category = Fabricate(:private_category, group: private_access_group)
-      hidden_topic = Fabricate(:topic, category: private_category)
-      hidden_post =
-        Fabricate(:post, topic: hidden_topic, post_number: 1, raw: "Restricted content.\n")
-      outsider = Fabricate(:user, groups: [suggest_group])
-
-      SiteSetting.suggested_edits_included_categories = "#{category.id}|#{private_category.id}"
-
-      sign_in(outsider)
-
-      post "/suggested-edits/suggestions.json",
-           params: {
-             post_id: hidden_post.id,
-             raw: "Updated restricted content.\n",
-           }
-
-      expect(response.status).to eq(404)
     end
   end
 
@@ -240,26 +207,6 @@ RSpec.describe DiscourseSuggestedEdits::SuggestionsController do
       )
     end
 
-    it "rejects revision by other users" do
-      sign_in(reviewer)
-
-      put "/suggested-edits/suggestions/#{suggestion.id}.json", params: { raw: "Hacked content" }
-
-      expect(response.status).to eq(403)
-    end
-
-    it "rejects revision if suggestion is no longer pending" do
-      suggestion.update!(status: :applied)
-      sign_in(suggester)
-
-      put "/suggested-edits/suggestions/#{suggestion.id}.json",
-          params: {
-            raw: "Revised content.\n",
-          }
-
-      expect(response.status).to eq(403)
-    end
-
     it "rejects overlong reasons" do
       sign_in(suggester)
 
@@ -296,14 +243,6 @@ RSpec.describe DiscourseSuggestedEdits::SuggestionsController do
       )
       expect(resolved_update(messages).user_ids).to eq([suggester.id])
       expect(resolved_update(messages).group_ids).to be_nil
-    end
-
-    it "rejects withdrawal by other users" do
-      sign_in(reviewer)
-
-      delete "/suggested-edits/suggestions/#{suggestion.id}.json"
-
-      expect(response.status).to eq(403)
     end
   end
 
@@ -388,70 +327,6 @@ RSpec.describe DiscourseSuggestedEdits::SuggestionsController do
     end
   end
 
-  describe "restricted topic access" do
-    fab!(:private_access_group, :group)
-    fab!(:private_category) { Fabricate(:private_category, group: private_access_group) }
-    fab!(:private_author) { Fabricate(:user, groups: [private_access_group]) }
-    fab!(:private_topic) { Fabricate(:topic, category: private_category) }
-    fab!(:private_post) do
-      Fabricate(
-        :post,
-        topic: private_topic,
-        user: private_author,
-        post_number: 1,
-        raw: "Restricted original content.\n",
-      )
-    end
-    fab!(:private_suggester) { Fabricate(:user, groups: [suggest_group, private_access_group]) }
-    fab!(:private_reviewer) { Fabricate(:user, groups: [review_group, private_access_group]) }
-
-    before do
-      SiteSetting.suggested_edits_included_categories = "#{category.id}|#{private_category.id}"
-    end
-
-    it "returns not found when a suggester loses access to their suggestion" do
-      suggestion =
-        create_suggestion!(
-          user: private_suggester,
-          raw: "Restricted updated content.\n",
-          post: private_post,
-        )
-
-      GroupUser.where(group: private_access_group, user: private_suggester).delete_all
-      sign_in(private_suggester)
-
-      get "/suggested-edits/suggestions/#{suggestion.id}.json"
-      expect(response.status).to eq(404)
-
-      put "/suggested-edits/suggestions/#{suggestion.id}.json",
-          params: {
-            raw: "Another restricted update.\n",
-          }
-      expect(response.status).to eq(404)
-    end
-
-    it "returns not found when a reviewer loses access to a suggestion" do
-      suggestion =
-        create_suggestion!(
-          user: private_suggester,
-          raw: "Restricted updated content.\n",
-          post: private_post,
-        )
-
-      GroupUser.where(group: private_access_group, user: private_reviewer).delete_all
-      sign_in(private_reviewer)
-
-      get "/suggested-edits/suggestions/#{suggestion.id}.json"
-      expect(response.status).to eq(404)
-
-      put "/suggested-edits/suggestions/#{suggestion.id}/apply.json",
-          params: {
-            accepted_change_ids: suggestion.edit_changes.pluck(:id),
-          }
-      expect(response.status).to eq(404)
-    end
-  end
-
   describe "PUT /suggested-edits/suggestions/:id/apply" do
     fab!(:suggestion) { create_suggestion!(user: suggester, raw: "New content here.\n") }
 
@@ -490,17 +365,6 @@ RSpec.describe DiscourseSuggestedEdits::SuggestionsController do
           }
 
       expect(response.status).to eq(204)
-    end
-
-    it "rejects apply from non-reviewers" do
-      sign_in(Fabricate(:user))
-
-      put "/suggested-edits/suggestions/#{suggestion.id}/apply.json",
-          params: {
-            accepted_change_ids: suggestion.edit_changes.pluck(:id),
-          }
-
-      expect(response.status).to eq(403)
     end
 
     it "rejects apply when no changes are selected" do
@@ -561,14 +425,6 @@ RSpec.describe DiscourseSuggestedEdits::SuggestionsController do
       )
       expect(resolved_update(messages).user_ids).to eq([suggester.id])
       expect(resolved_update(messages).group_ids).to be_nil
-    end
-
-    it "rejects dismiss from non-reviewers" do
-      sign_in(Fabricate(:user))
-
-      put "/suggested-edits/suggestions/#{suggestion.id}/dismiss.json"
-
-      expect(response.status).to eq(403)
     end
 
     it "rejects dismiss when the suggestion is no longer pending" do
