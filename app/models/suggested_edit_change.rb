@@ -36,3 +36,21 @@ class SuggestedEditChange < ActiveRecord::Base
     text.scan(/[^\s]+\s*|\s+/)
   end
 end
+
+# == Schema Information
+#
+# Table name: suggested_edit_changes
+#
+#  id                :bigint           not null, primary key
+#  after_text        :text             not null
+#  before_text       :text             not null
+#  position          :integer          not null
+#  start_offset      :integer          not null
+#  created_at        :datetime         not null
+#  updated_at        :datetime         not null
+#  suggested_edit_id :bigint           not null
+#
+# Indexes
+#
+#  index_suggested_edit_changes_on_suggested_edit_id_and_position  (suggested_edit_id,position)
+#
