@@ -79,5 +79,49 @@ module(
         .includesText("Final hidden sentence after.");
       assert.dom(".suggested-edit-change-item__expand--after").doesNotExist();
     });
+
+    test("preserves line breaks in inline diffs", async function (assert) {
+      const self = new (class {
+        change = {
+          diff_html:
+            '<div class="inline-diff">A: Yes, any post in a topic can be converted to a <del class="diff-del">wiki,</del><ins class="diff-ins">WIKI,</ins> not just the first post.<del class="diff-del">\n\nTo summarise, this is my edit!</del></div>',
+          preview_context_before: "",
+          preview_context_after: "",
+          context_before: "",
+          context_after: "",
+        };
+        status = "pending";
+        noop = () => {};
+      })();
+
+      await render(
+        <template>
+          <SuggestedEditChangeItem
+            @change={{self.change}}
+            @status={{self.status}}
+            @onAccept={{self.noop}}
+            @onReject={{self.noop}}
+            @disabled={{false}}
+          />
+        </template>
+      );
+
+      const inlineDiff = this.element.querySelector(
+        ".suggested-edit-change-item__diff .inline-diff"
+      );
+      assert.notStrictEqual(inlineDiff, null, "inline diff element renders");
+
+      assert.strictEqual(
+        window.getComputedStyle(inlineDiff).whiteSpace,
+        "pre-wrap",
+        "inline diffs preserve newline rendering"
+      );
+      assert.true(
+        inlineDiff.textContent.includes(
+          "post.\n\nTo summarise, this is my edit!"
+        ),
+        "diff text includes newline boundaries"
+      );
+    });
   }
 );

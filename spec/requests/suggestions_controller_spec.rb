@@ -336,6 +336,10 @@ RSpec.describe DiscourseSuggestedEdits::SuggestionsController do
       expect(change["preview_context_after"]).to include("Trailing paragraph after the change.")
       expect(change["context_before"]).to include("Lead paragraph before the change.")
       expect(change["context_after"]).to include("Trailing paragraph after the change.")
+      expect(change["preview_context_before"]).to end_with("\n\n")
+      expect(change["preview_context_after"]).to start_with("\n")
+      expect(change["context_before"]).to end_with("\n\n")
+      expect(change["context_after"]).to start_with("\n")
     end
   end
 

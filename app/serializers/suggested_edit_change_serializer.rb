@@ -51,8 +51,9 @@ class SuggestedEditChangeSerializer < ApplicationSerializer
     @raw_context ||=
       begin
         post_raw = object.suggested_edit.post&.raw.to_s
-        before_text = post_raw[0...object.start_offset].to_s.rstrip
-        after_text = post_raw[object.start_offset + object.before_text.length..].to_s.lstrip
+        before_text = post_raw[0...object.start_offset].to_s.sub(/[ \t]+\z/, "")
+        after_text =
+          post_raw[object.start_offset + object.before_text.length..].to_s.sub(/\A[ \t]+/, "")
 
         { before: before_text, after: after_text }
       end

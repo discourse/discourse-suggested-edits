@@ -275,7 +275,8 @@
     line-height: 1.5;
 
     .inline-diff {
-      display: inline;
+      display: block;
+      white-space: pre-wrap;
     }
 
     .diff-del,

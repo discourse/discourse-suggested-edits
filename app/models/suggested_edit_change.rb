@@ -33,7 +33,9 @@ class SuggestedEditChange < ActiveRecord::Base
   private
 
   def tokenize(text)
-    text.scan(/[^\s]+\s*|\s+/)
+    # Keep words and whitespace separate so newline-only deletions don't
+    # force neighboring unchanged words into delete/add churn.
+    text.scan(/[^\s]+|[ \t]+|\n+/)
   end
 end
 
