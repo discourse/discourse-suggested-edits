@@ -19,8 +19,8 @@ RSpec.describe "Suggested Edits", type: :system do
 
   before do
     SiteSetting.suggested_edits_enabled = true
-    SiteSetting.suggested_edits_suggest_group = suggest_group.id.to_s
-    SiteSetting.suggested_edits_review_group = review_group.id.to_s
+    SiteSetting.suggested_edits_suggest_groups = suggest_group.id.to_s
+    SiteSetting.suggested_edits_review_groups = review_group.id.to_s
     SiteSetting.suggested_edits_included_categories = category.id.to_s
   end
 

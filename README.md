@@ -19,8 +19,8 @@ Enable the plugin and configure it under Admin > Settings:
 | Setting | Description | Default |
 |---|---|---|
 | `suggested_edits_enabled` | Master toggle | `false` |
-| `suggested_edits_suggest_group` | Groups whose members can suggest edits | — |
-| `suggested_edits_review_group` | Groups whose members can review/apply edits (post authors can always review) | — |
+| `suggested_edits_suggest_groups` | Groups whose members can suggest edits | — |
+| `suggested_edits_review_groups` | Groups whose members can review/apply edits (post authors can always review) | — |
 | `suggested_edits_included_categories` | Categories where suggesting is available | — |
 | `suggested_edits_included_tags` | Tags where suggesting is available (OR with categories) | — |
 | `suggested_edits_max_creates_per_minute` | Rate limit for creating suggestions | `5` |

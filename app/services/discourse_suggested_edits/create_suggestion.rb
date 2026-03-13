@@ -14,7 +14,6 @@ class DiscourseSuggestedEdits::CreateSuggestion
 
   model :post
   policy :can_suggest_edit
-  step :enforce_rate_limit
   step :validate_payload
 
   lock(:post) do
@@ -39,15 +38,6 @@ class DiscourseSuggestedEdits::CreateSuggestion
 
   def can_suggest_edit(guardian:, post:)
     guardian.can_suggest_edit?(post)
-  end
-
-  def enforce_rate_limit(guardian:)
-    RateLimiter.new(
-      guardian.user,
-      "create_suggested_edit",
-      SiteSetting.suggested_edits_max_creates_per_minute,
-      1.minute,
-    ).performed!
   end
 
   def validate_payload(params:)

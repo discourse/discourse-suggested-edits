@@ -4,6 +4,8 @@ module DiscourseSuggestedEdits
   class SuggestionsController < ::ApplicationController
     requires_plugin DiscourseSuggestedEdits::PLUGIN_NAME
     requires_login
+    before_action :rate_limit_create!, only: :create
+    before_action :rate_limit_revise!, only: :update
 
     def index
       post = Post.find(params.require(:post_id))
@@ -29,7 +31,9 @@ module DiscourseSuggestedEdits
     end
 
     def create
-      DiscourseSuggestedEdits::CreateSuggestion.call(guardian:, params: create_params) do
+      DiscourseSuggestedEdits::CreateSuggestion.call(
+        service_params.deep_merge(params: create_params),
+      ) do
         on_success { |suggested_edit:| render_suggested_edit(suggested_edit, status: :created) }
         on_model_not_found(:post) { raise Discourse::NotFound }
         on_failed_policy(:can_suggest_edit) { raise Discourse::InvalidAccess }
@@ -49,7 +53,9 @@ module DiscourseSuggestedEdits
     end
 
     def update
-      DiscourseSuggestedEdits::ReviseSuggestion.call(guardian:, params: update_params) do
+      DiscourseSuggestedEdits::ReviseSuggestion.call(
+        service_params.deep_merge(params: update_params),
+      ) do
         on_success { |suggested_edit:| render_suggested_edit(suggested_edit) }
         on_model_not_found(:suggested_edit) { raise Discourse::NotFound }
         on_failed_policy(:can_update_suggested_edit) { raise Discourse::InvalidAccess }
@@ -87,7 +93,9 @@ module DiscourseSuggestedEdits
     end
 
     def apply
-      DiscourseSuggestedEdits::ApplySuggestion.call(guardian:, params: apply_params) do
+      DiscourseSuggestedEdits::ApplySuggestion.call(
+        service_params.deep_merge(params: apply_params),
+      ) do
         on_success { head :no_content }
         on_model_not_found(:suggested_edit) { raise Discourse::NotFound }
         on_failed_policy(:can_review_suggested_edit) { raise Discourse::InvalidAccess }
@@ -128,15 +136,33 @@ module DiscourseSuggestedEdits
     end
 
     def create_params
-      params.permit(:post_id, :raw, :reason)
+      params.permit(:post_id, :raw, :reason).to_h
     end
 
     def update_params
-      params.permit(:raw, :reason).merge(suggestion_id: params[:id])
+      params.permit(:raw, :reason).to_h.merge(suggestion_id: params[:id])
     end
 
     def apply_params
-      params.permit(accepted_change_ids: []).merge(suggestion_id: params[:id])
+      params.permit(accepted_change_ids: []).to_h.merge(suggestion_id: params[:id])
+    end
+
+    def rate_limit_create!
+      RateLimiter.new(
+        current_user,
+        "create_suggested_edit",
+        SiteSetting.suggested_edits_max_creates_per_minute,
+        1.minute,
+      ).performed!
+    end
+
+    def rate_limit_revise!
+      RateLimiter.new(
+        current_user,
+        "revise_suggested_edit",
+        SiteSetting.suggested_edits_max_revisions_per_minute,
+        1.minute,
+      ).performed!
     end
 
     def render_suggested_edit(suggested_edit, status: :ok)

@@ -40,14 +40,14 @@ module DiscourseSuggestedEdits
     end
 
     def review_audience_group_ids
-      (SiteSetting.suggested_edits_review_group_map + [Group::AUTO_GROUPS[:admins]]).uniq
+      (SiteSetting.suggested_edits_review_groups_map + [Group::AUTO_GROUPS[:admins]]).uniq
     end
 
     def review_audience_user_ids(post:, topic:)
       user_ids = User.human_users.where(admin: true).pluck(:id)
       user_ids << post.user_id
 
-      review_group_ids = SiteSetting.suggested_edits_review_group_map
+      review_group_ids = SiteSetting.suggested_edits_review_groups_map
       if review_group_ids.present?
         review_group_members = GroupUser.where(group_id: review_group_ids)
 

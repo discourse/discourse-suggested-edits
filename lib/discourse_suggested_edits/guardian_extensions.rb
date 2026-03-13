@@ -8,7 +8,7 @@ module DiscourseSuggestedEdits
       return false unless post && can_see?(post)
       return false unless post.post_number == 1
 
-      suggest_group_ids = SiteSetting.suggested_edits_suggest_group_map
+      suggest_group_ids = SiteSetting.suggested_edits_suggest_groups_map
       return false if suggest_group_ids.blank?
       return false unless user_in_suggested_edits_group?(suggest_group_ids)
 
@@ -33,7 +33,7 @@ module DiscourseSuggestedEdits
       return false unless suggested_edit&.post && can_see?(suggested_edit.post)
       return false unless suggested_edit.user_id == user.id
 
-      suggested_edit.pending?
+      true
     end
 
     def can_review_suggested_edits_in_topic_list?
@@ -41,7 +41,7 @@ module DiscourseSuggestedEdits
       return false unless user
       return true if user.admin?
 
-      review_group_ids = SiteSetting.suggested_edits_review_group_map
+      review_group_ids = SiteSetting.suggested_edits_review_groups_map
       review_group_ids.present? && user_in_suggested_edits_group?(review_group_ids)
     end
 

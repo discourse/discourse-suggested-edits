@@ -1,8 +1,8 @@
 en:
   site_settings:
     suggested_edits_enabled: "Enable the suggested edits plugin"
-    suggested_edits_suggest_group: "Groups whose members can suggest edits"
-    suggested_edits_review_group: "Groups whose members can review and apply suggested edits (post authors can always review their own)"
+    suggested_edits_suggest_groups: "Groups whose members can suggest edits"
+    suggested_edits_review_groups: "Groups whose members can review and apply suggested edits (post authors can always review their own)"
     suggested_edits_included_categories: "Categories where suggested edits are enabled"
     suggested_edits_included_tags: "Tags on topics where suggested edits are enabled"
     suggested_edits_max_creates_per_minute: "Maximum suggested edit creations per user per minute"

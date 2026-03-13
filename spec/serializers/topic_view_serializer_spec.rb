@@ -9,7 +9,7 @@ RSpec.describe TopicViewSerializer do
 
   before do
     SiteSetting.suggested_edits_enabled = true
-    SiteSetting.suggested_edits_review_group = review_group.id.to_s
+    SiteSetting.suggested_edits_review_groups = review_group.id.to_s
   end
 
   describe "pending_suggested_edit_count" do

@@ -59,9 +59,12 @@ RSpec.describe SuggestedEdit do
   describe "scopes" do
     it ".pending returns only pending suggestions" do
       pending_suggestion = Fabricate(:suggested_edit, post: post, user: user, status: :pending)
-      Fabricate(:suggested_edit, post: post, user: Fabricate(:user), status: :applied)
+      applied_suggestion =
+        Fabricate(:suggested_edit, post: post, user: Fabricate(:user), status: :applied)
 
-      expect(SuggestedEdit.pending).to contain_exactly(pending_suggestion)
+      expect(
+        SuggestedEdit.pending.where(id: [pending_suggestion.id, applied_suggestion.id]),
+      ).to contain_exactly(pending_suggestion)
     end
   end
 end

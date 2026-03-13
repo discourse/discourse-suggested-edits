@@ -14,8 +14,8 @@ RSpec.describe DiscourseSuggestedEdits::SuggestionsController do
 
   before do
     SiteSetting.suggested_edits_enabled = true
-    SiteSetting.suggested_edits_suggest_group = suggest_group.id.to_s
-    SiteSetting.suggested_edits_review_group = review_group.id.to_s
+    SiteSetting.suggested_edits_suggest_groups = suggest_group.id.to_s
+    SiteSetting.suggested_edits_review_groups = review_group.id.to_s
     SiteSetting.suggested_edits_included_categories = category.id.to_s
   end
 
@@ -248,13 +248,13 @@ RSpec.describe DiscourseSuggestedEdits::SuggestionsController do
       expect(response.status).to eq(403)
     end
 
-    it "returns 403 when suggestion is not pending" do
+    it "returns 409 when suggestion is not pending" do
       suggestion.update!(status: :dismissed)
       sign_in(suggester)
 
       delete "/suggested-edits/suggestions/#{suggestion.id}.json"
 
-      expect(response.status).to eq(403)
+      expect(response.status).to eq(409)
     end
   end
 

@@ -12,8 +12,8 @@ RSpec.describe DiscourseSuggestedEdits::GuardianExtensions do
 
   before do
     SiteSetting.suggested_edits_enabled = true
-    SiteSetting.suggested_edits_suggest_group = suggest_group.id.to_s
-    SiteSetting.suggested_edits_review_group = review_group.id.to_s
+    SiteSetting.suggested_edits_suggest_groups = suggest_group.id.to_s
+    SiteSetting.suggested_edits_review_groups = review_group.id.to_s
     SiteSetting.suggested_edits_included_categories = category.id.to_s
   end
 
@@ -36,7 +36,7 @@ RSpec.describe DiscourseSuggestedEdits::GuardianExtensions do
     end
 
     it "returns false when no suggest group is configured" do
-      SiteSetting.suggested_edits_suggest_group = ""
+      SiteSetting.suggested_edits_suggest_groups = ""
       expect(suggester.guardian.can_suggest_edit?(first_post)).to eq(false)
     end
 
@@ -120,9 +120,9 @@ RSpec.describe DiscourseSuggestedEdits::GuardianExtensions do
       expect(reviewer.guardian.can_update_suggested_edit?(suggestion)).to eq(false)
     end
 
-    it "returns false when the suggestion is no longer pending" do
+    it "returns true when the suggestion is no longer pending" do
       suggestion.update!(status: :applied)
-      expect(suggester.guardian.can_update_suggested_edit?(suggestion)).to eq(false)
+      expect(suggester.guardian.can_update_suggested_edit?(suggestion)).to eq(true)
     end
 
     it "returns false when the user can no longer see the post" do
@@ -157,7 +157,7 @@ RSpec.describe DiscourseSuggestedEdits::GuardianExtensions do
     end
 
     it "returns false when no review group is configured" do
-      SiteSetting.suggested_edits_review_group = ""
+      SiteSetting.suggested_edits_review_groups = ""
       expect(reviewer.guardian.can_review_suggested_edits_in_topic_list?).to eq(false)
     end
 

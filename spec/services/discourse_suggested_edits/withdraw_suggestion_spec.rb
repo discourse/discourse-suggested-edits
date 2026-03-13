@@ -24,8 +24,8 @@ RSpec.describe DiscourseSuggestedEdits::WithdrawSuggestion do
 
     before do
       SiteSetting.suggested_edits_enabled = true
-      SiteSetting.suggested_edits_suggest_group = suggest_group.id.to_s
-      SiteSetting.suggested_edits_review_group = review_group.id.to_s
+      SiteSetting.suggested_edits_suggest_groups = suggest_group.id.to_s
+      SiteSetting.suggested_edits_review_groups = review_group.id.to_s
       SiteSetting.suggested_edits_included_categories = category.id.to_s
     end
 
@@ -58,7 +58,7 @@ RSpec.describe DiscourseSuggestedEdits::WithdrawSuggestion do
     context "when the suggestion is not pending" do
       before { suggested_edit.update!(status: :dismissed) }
 
-      it { is_expected.to fail_a_policy(:can_update_suggested_edit) }
+      it { is_expected.to fail_a_policy(:suggestion_is_pending) }
     end
 
     context "when everything is ok" do
