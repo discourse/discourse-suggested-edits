@@ -1,0 +1,17 @@
+name: docs-refresh
+description: "Refresh Discourse documentation by cross-referencing source code and submitting suggested edits"
+
+tools:
+  enabled: [read_file, grep, glob, shell]
+
+shell:
+  allow: ["git *"]
+  auto_run: true
+
+search: true
+
+mcp:
+  - name: discourse_meta
+  - name: suggested-edits
+
+max_turns: 200
