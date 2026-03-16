@@ -30,7 +30,6 @@ api_username = options[:api_username] || ENV["DISCOURSE_API_USERNAME"]
 missing = []
 missing << "URL (--url or DISCOURSE_URL)" unless url
 missing << "API key (--api-key or DISCOURSE_API_KEY)" unless api_key
-missing << "API username (--api-username or DISCOURSE_API_USERNAME)" unless api_username
 
 unless missing.empty?
   $stderr.puts "Error: Missing required configuration:"

@@ -61,7 +61,7 @@ class DiscourseClient
 
   def set_headers(request)
     request["Api-Key"] = @api_key
-    request["Api-Username"] = @api_username
+    request["Api-Username"] = @api_username if @api_username
     request["Content-Type"] = "application/json"
     request["Accept"] = "application/json"
   end
