@@ -62,7 +62,7 @@ class DiscourseSuggestedEdits::ApplySuggestion
       ensure_current_post_version!(suggested_edit)
 
       new_raw = build_new_raw!(suggested_edit, accepted_changes)
-      apply_post_revision!(suggested_edit, new_raw)
+      apply_post_revision!(suggested_edit, new_raw, guardian.user)
 
       suggested_edit.update!(
         status: :applied,
@@ -137,16 +137,15 @@ class DiscourseSuggestedEdits::ApplySuggestion
     raise StaleSuggestionError
   end
 
-  def apply_post_revision!(suggested_edit, new_raw)
+  def apply_post_revision!(suggested_edit, new_raw, reviewer)
     revised =
       PostRevisor.new(suggested_edit.post).revise!(
         suggested_edit.user,
-        { raw: new_raw },
-        edit_reason:
-          I18n.t(
-            "discourse_suggested_edits.applied_reason",
-            username: suggested_edit.user.username,
-          ),
+        {
+          raw: new_raw,
+          edit_reason:
+            I18n.t("discourse_suggested_edits.applied_reason", username: reviewer.username),
+        },
         force_new_version: true,
         bypass_rate_limiter: true,
         suggested_edit: true,

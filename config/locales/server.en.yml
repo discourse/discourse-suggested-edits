@@ -10,7 +10,7 @@ en:
   discourse_suggested_edits:
     filter:
       description: "Topics with pending suggested edits"
-    applied_reason: "Applied suggested edit from @%{username}"
+    applied_reason: "Edit approved by @%{username}"
     errors:
       no_changes: "The suggestion must differ from the original post."
       no_selected_changes: "Select at least one valid change to apply."

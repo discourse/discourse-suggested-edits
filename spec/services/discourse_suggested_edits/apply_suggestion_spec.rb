@@ -118,6 +118,13 @@ RSpec.describe DiscourseSuggestedEdits::ApplySuggestion do
         expect(suggestion.applied_at).to be_present
       end
 
+      it "records the reviewer in the post edit reason" do
+        result
+        expect(post.reload.edit_reason).to eq(
+          I18n.t("discourse_suggested_edits.applied_reason", username: reviewer.username),
+        )
+      end
+
       it "publishes review and resolved updates" do
         messages
         review_message = messages.find { |m| m.data[:type] == "suggested_edits_changed" }
