@@ -42,6 +42,8 @@ function initializePlugin(api) {
     "own_pending_suggested_edit_id"
   );
 
+  api.addSearchSuggestion("with:suggested-edits");
+
   api.registerRichEditorExtension(richEditorExtension);
 
   api.customizeComposerText({

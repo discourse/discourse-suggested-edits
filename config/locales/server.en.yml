@@ -8,6 +8,8 @@ en:
     suggested_edits_max_creates_per_minute: "Maximum suggested edit creations per user per minute"
     suggested_edits_max_revisions_per_minute: "Maximum suggested edit revisions per user per minute"
   discourse_suggested_edits:
+    filter:
+      description: "Topics with pending suggested edits"
     applied_reason: "Applied suggested edit from @%{username}"
     errors:
       no_changes: "The suggestion must differ from the original post."

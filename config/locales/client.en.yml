@@ -11,6 +11,8 @@ en:
           discourse_suggested_edits: "Suggested Edits"
   js:
     discourse_suggested_edits:
+      search:
+        filter_title: "Has suggested edits"
       suggest_edit: "Suggest Edit"
       suggest_edit_title: "Suggest an edit to this post"
       composer:
