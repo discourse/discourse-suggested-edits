@@ -1,0 +1,177 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "net/http"
+require "json"
+require "optparse"
+
+BASE_URL = "https://meta.discourse.org"
+PARENT_CATEGORY_ID = 10
+PROGRESS_FILE = File.join(__dir__, "refresh-docs-progress.json")
+
+dry_run = false
+refresh = false
+limit = nil
+
+OptionParser
+  .new do |opts|
+    opts.banner = "Usage: refresh-docs [options]"
+    opts.on("--dry-run", "List topics that would be processed") do
+      dry_run = true
+    end
+    opts.on("--refresh", "Re-fetch topic list from meta (phase 1)") do
+      refresh = true
+    end
+    opts.on("--limit N", Integer, "Only process N topics") { |n| limit = n }
+  end
+  .parse!
+
+def fetch_json(path)
+  uri = URI("#{BASE_URL}#{path}")
+  response = Net::HTTP.get_response(uri)
+  unless response.is_a?(Net::HTTPSuccess)
+    raise "HTTP #{response.code} fetching #{path}: #{response.body[0..200]}"
+  end
+  JSON.parse(response.body)
+end
+
+def subcategory_ids
+  data = fetch_json("/site.json")
+  categories = data.fetch("categories", [])
+  categories
+    .select { |c| c["parent_category_id"] == PARENT_CATEGORY_ID }
+    .reject { |c| c["slug"] == "developer-guides" }
+    .map { |c| { id: c["id"], slug: c["slug"] } }
+end
+
+def fetch_topics_for_category(slug, id)
+  topics = []
+  page = 0
+
+  loop do
+    path =
+      if slug
+        "/c/documentation/#{slug}/#{id}.json?page=#{page}"
+      else
+        "/c/documentation/#{id}.json?page=#{page}"
+      end
+
+    puts "  Fetching #{path}"
+    data = fetch_json(path)
+    topic_list = data["topic_list"]
+    batch = topic_list["topics"] || []
+    break if batch.empty?
+
+    topics.concat(batch)
+    break unless topic_list["more_topics_url"]
+
+    page += 1
+  end
+
+  topics
+end
+
+def fetch_all_topics
+  puts "Fetching subcategories from meta..."
+  subcats = subcategory_ids
+  puts "Found #{subcats.size} subcategories (excluding developer-guides)"
+
+  categories_to_crawl = [{ id: PARENT_CATEGORY_ID, slug: nil }] + subcats
+
+  all_topics = {}
+  categories_to_crawl.each do |cat|
+    label = cat[:slug] || "documentation"
+    puts "Fetching topics for #{label} (#{cat[:id]})..."
+    topics = fetch_topics_for_category(cat[:slug], cat[:id])
+    topics.each do |t|
+      all_topics[t["id"]] ||= {
+        "id" => t["id"],
+        "slug" => t["slug"],
+        "title" => t["title"],
+        "tags" => (t["tags"] || []).map { |tag| tag.is_a?(Hash) ? tag["name"] : tag }
+      }
+    end
+  end
+
+  all_topics.values
+end
+
+def load_state
+  return {} unless File.exist?(PROGRESS_FILE)
+  JSON.parse(File.read(PROGRESS_FILE))
+end
+
+def save_state(state)
+  File.write(PROGRESS_FILE, JSON.pretty_generate(state))
+end
+
+# Load existing state
+state = load_state
+topics = state["topics"]
+completed = Set.new(state["completed"] || [])
+
+# Phase 1: fetch topic list if needed
+if topics.nil? || refresh
+  topics = fetch_all_topics
+  state["topics"] = topics
+  state["completed"] ||= []
+  save_state(state)
+  puts "\nCached #{topics.size} topics to #{PROGRESS_FILE}"
+else
+  puts "Using cached topic list (#{topics.size} topics). Pass --refresh to re-fetch."
+end
+
+# Phase 2: process topics
+skipped = topics.count { |t| (t["tags"] || []).include?("index") }
+remaining = topics.reject { |t| completed.include?(t["id"]) || (t["tags"] || []).include?("index") }
+puts "#{skipped} index topics skipped" if skipped > 0
+puts "#{completed.size} already completed, #{remaining.size} remaining\n\n"
+
+remaining.sort_by! { |t| t["id"] }
+remaining = remaining.first(limit) if limit
+
+if dry_run
+  remaining.each do |t|
+    url = "#{BASE_URL}/t/#{t["slug"]}/#{t["id"]}"
+    puts "#{t["id"]}\t#{t["title"]}"
+    puts "\t#{url}"
+  end
+  puts "\n#{remaining.size} topics would be processed"
+  exit 0
+end
+
+if remaining.empty?
+  puts "Nothing to do!"
+  exit 0
+end
+
+remaining.each_with_index do |topic, idx|
+  url = "#{BASE_URL}/t/#{topic["slug"]}/#{topic["id"]}"
+  puts "=" * 72
+  puts "[#{idx + 1}/#{remaining.size}] #{topic["title"]}"
+  puts url
+  puts "=" * 72
+
+  cmd = [
+    "term-llm",
+    "ask",
+    "--yolo",
+    "--agent",
+    "./docs-refresh-agent",
+    "refresh documentation for #{url}"
+  ]
+
+  pid = spawn(*cmd, chdir: __dir__)
+  _, status = Process.wait2(pid)
+
+  if status.success?
+    completed.add(topic["id"])
+    state["completed"] = completed.to_a
+    save_state(state)
+    puts "\n>> Completed topic #{topic["id"]}\n\n"
+  else
+    puts "\n!! Failed topic #{topic["id"]} (exit #{status.exitstatus}), continuing...\n\n"
+  end
+end
+
+puts "Done! #{completed.size} topics completed total."
