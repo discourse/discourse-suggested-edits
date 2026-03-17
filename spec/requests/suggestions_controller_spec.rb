@@ -418,6 +418,22 @@ RSpec.describe DiscourseSuggestedEdits::SuggestionsController do
 
       expect(response.status).to eq(409)
     end
+
+    it "applies with change_overrides replacing the after_text" do
+      sign_in(reviewer)
+      change = suggestion.edit_changes.first
+
+      put "/suggested-edits/suggestions/#{suggestion.id}/apply.json",
+          params: {
+            accepted_change_ids: [change.id],
+            change_overrides: {
+              change.id.to_s => "Custom reviewer text.\n",
+            },
+          }
+
+      expect(response.status).to eq(204)
+      expect(first_post.reload.raw).to eq("Custom reviewer text.")
+    end
   end
 
   describe "PUT /suggested-edits/suggestions/:id/dismiss" do

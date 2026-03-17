@@ -1,4 +1,5 @@
-import { click, render } from "@ember/test-helpers";
+import { tracked } from "@glimmer/tracking";
+import { click, fillIn, render } from "@ember/test-helpers";
 import { module, test } from "qunit";
 import { setupRenderingTest } from "discourse/tests/helpers/component-test";
 import SuggestedEditChangeItem from "discourse/plugins/discourse-suggested-edits/discourse/components/suggested-edit-change-item";
@@ -122,6 +123,206 @@ module(
         ),
         "diff text includes newline boundaries"
       );
+    });
+
+    test("edit button opens textarea and save commits the edit", async function (assert) {
+      let savedText = null;
+
+      const self = new (class {
+        @tracked isEditing = false;
+        @tracked isAnyEditing = false;
+        change = {
+          id: 1,
+          after_text: "Original after",
+          diff_html: '<div class="inline-diff">Original after</div>',
+          preview_context_before: "",
+          preview_context_after: "",
+          context_before: "",
+          context_after: "",
+        };
+        status = "pending";
+
+        noop = () => {};
+        onEdit = () => {
+          this.isEditing = true;
+          this.isAnyEditing = true;
+        };
+        onSaveEdit = (text) => (savedText = text);
+        onCancelEdit = () => {};
+      })();
+
+      await render(
+        <template>
+          <SuggestedEditChangeItem
+            @change={{self.change}}
+            @status={{self.status}}
+            @onAccept={{self.noop}}
+            @onReject={{self.noop}}
+            @onEdit={{self.onEdit}}
+            @onSaveEdit={{self.onSaveEdit}}
+            @onCancelEdit={{self.onCancelEdit}}
+            @isEditing={{self.isEditing}}
+            @isAnyEditing={{self.isAnyEditing}}
+            @disabled={{false}}
+          />
+        </template>
+      );
+
+      assert
+        .dom(".suggested-edit-change-item__edit")
+        .exists("edit button is rendered");
+      assert
+        .dom(".suggested-edit-change-item__editor")
+        .doesNotExist("editor is not shown initially");
+
+      await click(".suggested-edit-change-item__edit");
+
+      assert
+        .dom(".suggested-edit-change-item__editor")
+        .exists("editor is shown after clicking edit");
+      assert
+        .dom(".suggested-edit-change-item__editor-textarea")
+        .hasValue("Original after");
+
+      await fillIn(
+        ".suggested-edit-change-item__editor-textarea",
+        "Custom text"
+      );
+      await click(".suggested-edit-change-item__save-edit");
+
+      assert.strictEqual(
+        savedText,
+        "Custom text",
+        "onSaveEdit receives the edited text"
+      );
+    });
+
+    test("cancel edit invokes onCancelEdit without saving", async function (assert) {
+      let cancelCalled = false;
+      let savedText = null;
+
+      const self = new (class {
+        change = {
+          id: 1,
+          after_text: "Original after",
+          diff_html: '<div class="inline-diff">Original after</div>',
+          preview_context_before: "",
+          preview_context_after: "",
+          context_before: "",
+          context_after: "",
+        };
+        status = "pending";
+        noop = () => {};
+        onSaveEdit = (text) => (savedText = text);
+        onCancelEdit = () => (cancelCalled = true);
+      })();
+
+      await render(
+        <template>
+          <SuggestedEditChangeItem
+            @change={{self.change}}
+            @status={{self.status}}
+            @onAccept={{self.noop}}
+            @onReject={{self.noop}}
+            @onEdit={{self.noop}}
+            @onSaveEdit={{self.onSaveEdit}}
+            @onCancelEdit={{self.onCancelEdit}}
+            @isEditing={{true}}
+            @isAnyEditing={{true}}
+            @disabled={{false}}
+          />
+        </template>
+      );
+
+      await fillIn(
+        ".suggested-edit-change-item__editor-textarea",
+        "Unsaved draft"
+      );
+      await click(".suggested-edit-change-item__cancel-edit");
+
+      assert.true(cancelCalled, "onCancelEdit was called");
+      assert.strictEqual(savedText, null, "onSaveEdit was not called");
+    });
+
+    test("shows edited badge when editedAfterText is provided", async function (assert) {
+      const self = new (class {
+        change = {
+          id: 1,
+          after_text: "Original after",
+          diff_html: '<div class="inline-diff">Original after</div>',
+          preview_context_before: "",
+          preview_context_after: "",
+          context_before: "",
+          context_after: "",
+        };
+        status = "accepted";
+        noop = () => {};
+      })();
+
+      await render(
+        <template>
+          <SuggestedEditChangeItem
+            @change={{self.change}}
+            @status={{self.status}}
+            @onAccept={{self.noop}}
+            @onReject={{self.noop}}
+            @onEdit={{self.noop}}
+            @onSaveEdit={{self.noop}}
+            @onCancelEdit={{self.noop}}
+            @isEditing={{false}}
+            @isAnyEditing={{false}}
+            @editedAfterText="Custom reviewer text"
+            @disabled={{false}}
+          />
+        </template>
+      );
+
+      assert
+        .dom(".suggested-edit-change-item__edited-badge")
+        .exists("edited badge is shown");
+      assert
+        .dom(".suggested-edit-change-item__edited-text")
+        .hasText("Custom reviewer text");
+      assert
+        .dom(".suggested-edit-change-item__diff .inline-diff")
+        .doesNotExist("original diff is not shown");
+    });
+
+    test("edit button is disabled when another hunk is being edited", async function (assert) {
+      const self = new (class {
+        change = {
+          id: 1,
+          after_text: "Original after",
+          diff_html: '<div class="inline-diff">Original after</div>',
+          preview_context_before: "",
+          preview_context_after: "",
+          context_before: "",
+          context_after: "",
+        };
+        status = "pending";
+        noop = () => {};
+      })();
+
+      await render(
+        <template>
+          <SuggestedEditChangeItem
+            @change={{self.change}}
+            @status={{self.status}}
+            @onAccept={{self.noop}}
+            @onReject={{self.noop}}
+            @onEdit={{self.noop}}
+            @onSaveEdit={{self.noop}}
+            @onCancelEdit={{self.noop}}
+            @isEditing={{false}}
+            @isAnyEditing={{true}}
+            @disabled={{false}}
+          />
+        </template>
+      );
+
+      assert
+        .dom(".suggested-edit-change-item__edit")
+        .isDisabled("edit button is disabled when another hunk is editing");
     });
   }
 );

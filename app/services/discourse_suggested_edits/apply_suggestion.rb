@@ -15,6 +15,7 @@ class DiscourseSuggestedEdits::ApplySuggestion
   params do
     attribute :suggestion_id, :integer
     attribute :accepted_change_ids, :array
+    attribute :change_overrides
 
     validates :suggestion_id, presence: true
     validate :accepted_change_ids_must_be_array
@@ -57,6 +58,7 @@ class DiscourseSuggestedEdits::ApplySuggestion
       ensure_pending!(suggested_edit)
       accepted_change_ids = normalize_change_ids(params.accepted_change_ids)
       accepted_changes = load_accepted_changes!(suggested_edit, accepted_change_ids)
+      apply_overrides!(accepted_changes, params.change_overrides)
       ensure_current_post_version!(suggested_edit)
 
       new_raw = build_new_raw!(suggested_edit, accepted_changes)
@@ -106,6 +108,14 @@ class DiscourseSuggestedEdits::ApplySuggestion
     end
 
     accepted_changes
+  end
+
+  def apply_overrides!(accepted_changes, overrides)
+    return if overrides.blank?
+    overrides_map = overrides.transform_keys { |k| k.to_s.to_i }
+    accepted_changes.each do |change|
+      change.after_text = overrides_map[change.id] if overrides_map.key?(change.id)
+    end
   end
 
   def ensure_pending!(suggested_edit)

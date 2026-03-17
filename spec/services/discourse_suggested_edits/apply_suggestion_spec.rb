@@ -127,5 +127,71 @@ RSpec.describe DiscourseSuggestedEdits::ApplySuggestion do
         expect(resolved_message.user_ids).to eq([suggester.id])
       end
     end
+
+    context "with change_overrides" do
+      let(:params) { { suggestion_id:, accepted_change_ids:, change_overrides: } }
+
+      context "when overriding an accepted change" do
+        let(:change_overrides) { { suggestion.edit_changes.first.id.to_s => "Line CUSTOM\n" } }
+
+        it "applies the overridden text instead of the original after_text" do
+          expect { result }.to change { post.reload.raw }.to("Line one\nLine CUSTOM\nLine three")
+        end
+
+        it "does not persist the override to the change record" do
+          result
+          expect(suggestion.edit_changes.first.reload.after_text).to eq("Line TWO\n")
+        end
+      end
+
+      context "when overriding with an empty string" do
+        let(:change_overrides) { { suggestion.edit_changes.first.id.to_s => "" } }
+
+        it "applies the empty string, effectively deleting the original text" do
+          expect { result }.to change { post.reload.raw }.to("Line one\nLine three")
+        end
+      end
+
+      context "when override targets a non-accepted change id" do
+        fab!(:multi_post) do
+          Fabricate(:post, topic: topic, post_number: 2, raw: "Alpha\nMiddle\nBravo\n")
+        end
+        fab!(:multi_suggestion) do
+          Fabricate(
+            :suggested_edit,
+            post: multi_post,
+            user: suggester,
+            raw_suggestion: "ALPHA\nMiddle\nBRAVO\n",
+            base_post_version: multi_post.version,
+          )
+        end
+
+        before do
+          DiscourseSuggestedEdits::ChangeExtractor
+            .call(original_raw: multi_post.raw, new_raw: multi_suggestion.raw_suggestion)
+            .each do |change|
+              Fabricate(:suggested_edit_change, suggested_edit: multi_suggestion, **change)
+            end
+        end
+
+        let(:suggestion_id) { multi_suggestion.id }
+        let(:first_change) { multi_suggestion.edit_changes.order(:position).first }
+        let(:second_change) { multi_suggestion.edit_changes.order(:position).second }
+        let(:accepted_change_ids) { [first_change.id] }
+        let(:change_overrides) { { second_change.id.to_s => "SHOULD NOT APPEAR" } }
+
+        it "ignores overrides for change ids that are not accepted" do
+          expect { result }.to change { multi_post.reload.raw }.to("ALPHA\nMiddle\nBravo")
+        end
+      end
+
+      context "when change_overrides is blank" do
+        let(:change_overrides) { {} }
+
+        it "applies the original after_text" do
+          expect { result }.to change { post.reload.raw }.to("Line one\nLine TWO\nLine three")
+        end
+      end
+    end
   end
 end

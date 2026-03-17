@@ -28,6 +28,12 @@
   }
 }
 
+// Side-by-side wider modal
+.suggested-edits-review-modal--side-by-side .d-modal__container {
+  width: min(95vw, 75rem);
+  max-width: 75rem;
+}
+
 // Review Modal
 .suggested-edits-review-modal {
   --suggested-edits-gap: var(--space-3);
@@ -70,7 +76,6 @@
     display: flex;
     align-items: center;
     gap: var(--space-1);
-    margin-inline-start: auto;
   }
 
   &__nav-label {
@@ -80,19 +85,20 @@
     text-align: center;
   }
 
+  &__view-modes {
+    margin-inline-start: auto;
+
+    .nav-pills {
+      margin: 0;
+    }
+  }
+
   &__reason {
     margin-bottom: var(--space-4);
     padding: var(--space-3) var(--space-4);
     background: var(--suggested-edits-muted-surface);
     border: 1px solid var(--suggested-edits-border);
     border-radius: var(--d-border-radius);
-  }
-
-  &__summary {
-    margin: 0 0 var(--space-4);
-    color: var(--suggested-edits-muted);
-    font-size: var(--font-down-1);
-    line-height: 1.5;
   }
 
   &__changes {
@@ -294,6 +300,22 @@
       background-color: var(--success-low);
       color: var(--success);
     }
+
+    .side-by-side-diff__before,
+    .side-by-side-diff__after {
+      display: block;
+      white-space: pre-wrap;
+    }
+  }
+
+  &__diff--side-by-side {
+    display: flex;
+    gap: var(--space-4);
+  }
+
+  &__side {
+    flex: 1 1 50%;
+    min-width: 0;
   }
 
   &__context {
@@ -331,7 +353,8 @@
   }
 
   &__accept,
-  &__reject {
+  &__reject,
+  &__edit {
     min-width: 7rem;
     justify-content: center;
   }
@@ -367,9 +390,80 @@
     }
 
     &__accept,
-    &__reject {
+    &__reject,
+    &__edit {
       flex: 1 1 0;
     }
+  }
+
+  &--editing {
+    --suggested-edit-change-accent: var(--tertiary);
+    --suggested-edit-change-background: var(--tertiary-very-low);
+  }
+
+  &__editor {
+    padding: var(--space-3) var(--space-4);
+  }
+
+  &__editor-textarea {
+    width: 100%;
+    min-height: 8rem;
+    padding: var(--space-2);
+    font-family: var(--d-font-family--monospace);
+    font-size: var(--font-down-1);
+    line-height: 1.5;
+    resize: vertical;
+    box-sizing: border-box;
+  }
+
+  &__editor-actions {
+    display: flex;
+    gap: var(--space-2);
+    margin-top: var(--space-2);
+  }
+
+  &__edited-badge {
+    display: inline-block;
+    margin-bottom: var(--space-2);
+    padding: var(--space-0) var(--space-2);
+    font-size: var(--font-down-2);
+    font-weight: 600;
+    color: var(--tertiary);
+    background: var(--tertiary-low);
+    border-radius: var(--d-border-radius);
+  }
+
+  &__edited-text {
+    display: block;
+    margin: 0;
+    white-space: pre-wrap;
+    font: inherit;
+  }
+}
+
+// Suggested Edit Reason (composer connector)
+.suggested-edit-reason {
+  display: inline-flex;
+  align-items: center;
+
+  &__link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    color: var(--primary-medium);
+    font-size: var(--font-down-1);
+
+    &:hover {
+      color: var(--primary-high);
+    }
+  }
+
+  &__input {
+    margin: 0;
+    padding: var(--space-1) var(--space-2);
+    font-size: var(--font-down-1);
+    width: 18rem;
+    max-width: 50vw;
   }
 }
 

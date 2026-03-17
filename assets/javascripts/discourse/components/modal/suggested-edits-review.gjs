@@ -1,13 +1,17 @@
 import Component from "@glimmer/component";
 import { tracked } from "@glimmer/tracking";
 import { fn } from "@ember/helper";
+import { on } from "@ember/modifier";
 import { action } from "@ember/object";
 import { service } from "@ember/service";
 import DButton from "discourse/components/d-button";
 import DModal from "discourse/components/d-modal";
 import avatar from "discourse/helpers/avatar";
+import concatClass from "discourse/helpers/concat-class";
+import icon from "discourse/helpers/d-icon";
 import formatDate from "discourse/helpers/format-date";
 import { popupAjaxError } from "discourse/lib/ajax-error";
+import { eq } from "discourse/truth-helpers";
 import { i18n } from "discourse-i18n";
 import SuggestedEditChangeItem from "discourse/plugins/discourse-suggested-edits/discourse/components/suggested-edit-change-item";
 import SuggestedEditsStaleWarning from "discourse/plugins/discourse-suggested-edits/discourse/components/suggested-edits-stale-warning";
@@ -23,7 +27,10 @@ export default class SuggestedEditsReviewModal extends Component {
   @tracked suggestions = [];
   @tracked currentIndex = 0;
   @tracked changeStatuses = new Map();
+  @tracked editedChanges = new Map();
+  @tracked editingChangeId = null;
   @tracked loading = true;
+  @tracked viewMode = "inline";
 
   constructor() {
     super(...arguments);
@@ -46,6 +53,8 @@ export default class SuggestedEditsReviewModal extends Component {
 
   resetChangeStatuses() {
     this.changeStatuses = new Map();
+    this.editedChanges = new Map();
+    this.editingChangeId = null;
   }
 
   get suggestion() {
@@ -60,6 +69,7 @@ export default class SuggestedEditsReviewModal extends Component {
     return this.changes.map((c) => ({
       ...c,
       status: this.changeStatuses.get(c.id) || "pending",
+      editedAfterText: this.editedChanges.get(c.id),
     }));
   }
 
@@ -83,14 +93,26 @@ export default class SuggestedEditsReviewModal extends Component {
     return this.currentIndex >= this.suggestions.length - 1;
   }
 
+  get prevNavDisabled() {
+    return this.prevDisabled || this.isEditing;
+  }
+
+  get nextNavDisabled() {
+    return this.nextDisabled || this.isEditing;
+  }
+
   get acceptedCount() {
     return this.changes.filter(
       (c) => this.changeStatuses.get(c.id) === "accepted"
     ).length;
   }
 
+  get isEditing() {
+    return this.editingChangeId !== null;
+  }
+
   get applyDisabled() {
-    return this.isStale || this.acceptedCount === 0;
+    return this.isStale || this.acceptedCount === 0 || this.isEditing;
   }
 
   get applyLabel() {
@@ -98,8 +120,22 @@ export default class SuggestedEditsReviewModal extends Component {
     return this.acceptedCount > 0 ? `${base} (${this.acceptedCount})` : base;
   }
 
-  get reviewSummary() {
-    return i18n("discourse_suggested_edits.review.instructions");
+  get modalClass() {
+    return this.viewMode === "side-by-side"
+      ? "suggested-edits-review-modal suggested-edits-review-modal--side-by-side"
+      : "suggested-edits-review-modal";
+  }
+
+  @action
+  setInline(event) {
+    event.preventDefault();
+    this.viewMode = "inline";
+  }
+
+  @action
+  setSideBySide(event) {
+    event.preventDefault();
+    this.viewMode = "side-by-side";
   }
 
   @action
@@ -122,6 +158,29 @@ export default class SuggestedEditsReviewModal extends Component {
   }
 
   @action
+  editChange(change) {
+    this.editingChangeId = change.id;
+  }
+
+  @action
+  saveEdit(change, newText) {
+    const newEdited = new Map(this.editedChanges);
+    newEdited.set(change.id, newText);
+    this.editedChanges = newEdited;
+
+    const newStatuses = new Map(this.changeStatuses);
+    newStatuses.set(change.id, "accepted");
+    this.changeStatuses = newStatuses;
+
+    this.editingChangeId = null;
+  }
+
+  @action
+  cancelEdit() {
+    this.editingChangeId = null;
+  }
+
+  @action
   async applyAccepted() {
     const acceptedIds = this.changes
       .filter((c) => this.changeStatuses.get(c.id) === "accepted")
@@ -131,8 +190,15 @@ export default class SuggestedEditsReviewModal extends Component {
       return;
     }
 
+    const overrides = {};
+    for (const [changeId, text] of this.editedChanges) {
+      if (acceptedIds.includes(changeId)) {
+        overrides[changeId] = text;
+      }
+    }
+
     try {
-      await applySuggestedEdit(this.suggestion.id, acceptedIds);
+      await applySuggestedEdit(this.suggestion.id, acceptedIds, overrides);
       this.toasts.success({
         data: {
           message: i18n("discourse_suggested_edits.review.applied_success"),
@@ -199,7 +265,7 @@ export default class SuggestedEditsReviewModal extends Component {
     <DModal
       @title={{i18n "discourse_suggested_edits.modal.review_title"}}
       @closeModal={{@closeModal}}
-      class="suggested-edits-review-modal"
+      class={{this.modalClass}}
     >
       <:body>
         {{#if this.loading}}
@@ -220,7 +286,7 @@ export default class SuggestedEditsReviewModal extends Component {
                 <DButton
                   @action={{this.prevSuggestion}}
                   @icon="chevron-left"
-                  @disabled={{this.prevDisabled}}
+                  @disabled={{this.prevNavDisabled}}
                   class="btn-flat btn-small"
                 />
                 <span class="suggested-edits-review__nav-label">
@@ -229,11 +295,49 @@ export default class SuggestedEditsReviewModal extends Component {
                 <DButton
                   @action={{this.nextSuggestion}}
                   @icon="chevron-right"
-                  @disabled={{this.nextDisabled}}
+                  @disabled={{this.nextNavDisabled}}
                   class="btn-flat btn-small"
                 />
               </span>
             {{/if}}
+            <span class="suggested-edits-review__view-modes">
+              <ul class="nav nav-pills">
+                <li>
+                  <a
+                    href
+                    class={{concatClass
+                      "inline-mode"
+                      (if (eq this.viewMode "inline") "active")
+                    }}
+                    title={{i18n
+                      "discourse_suggested_edits.review.view_inline"
+                    }}
+                    {{on "click" this.setInline}}
+                  >
+                    {{icon "far-square"}}
+                    {{i18n "discourse_suggested_edits.review.view_inline"}}
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href
+                    class={{concatClass
+                      "side-by-side-mode"
+                      (if (eq this.viewMode "side-by-side") "active")
+                    }}
+                    title={{i18n
+                      "discourse_suggested_edits.review.view_side_by_side"
+                    }}
+                    {{on "click" this.setSideBySide}}
+                  >
+                    {{icon "table-columns"}}
+                    {{i18n
+                      "discourse_suggested_edits.review.view_side_by_side"
+                    }}
+                  </a>
+                </li>
+              </ul>
+            </span>
           </div>
 
           {{#if this.suggestion.reason}}
@@ -249,17 +353,20 @@ export default class SuggestedEditsReviewModal extends Component {
             <SuggestedEditsStaleWarning @onDismiss={{this.dismiss}} />
           {{/if}}
 
-          <p class="suggested-edits-review__summary">
-            {{this.reviewSummary}}
-          </p>
-
           <div class="suggested-edits-review__changes">
             {{#each this.changesWithStatus key="id" as |change|}}
               <SuggestedEditChangeItem
                 @change={{change}}
                 @status={{change.status}}
+                @viewMode={{this.viewMode}}
                 @onAccept={{fn this.updateStatus change "accepted"}}
                 @onReject={{fn this.updateStatus change "rejected"}}
+                @onEdit={{fn this.editChange change}}
+                @onSaveEdit={{fn this.saveEdit change}}
+                @onCancelEdit={{this.cancelEdit}}
+                @isEditing={{eq this.editingChangeId change.id}}
+                @isAnyEditing={{this.isEditing}}
+                @editedAfterText={{change.editedAfterText}}
                 @disabled={{this.isStale}}
               />
             {{/each}}
@@ -276,6 +383,7 @@ export default class SuggestedEditsReviewModal extends Component {
                 @action={{this.dismiss}}
                 @icon="trash-can"
                 @label="discourse_suggested_edits.review.discard"
+                @disabled={{this.isEditing}}
                 class="btn-danger suggested-edits-review-modal__discard"
               />
             </div>
@@ -283,6 +391,7 @@ export default class SuggestedEditsReviewModal extends Component {
               <DButton
                 @action={{this.acceptAll}}
                 @label="discourse_suggested_edits.review.accept_all"
+                @disabled={{this.isEditing}}
                 class="btn-default"
               />
               <DButton

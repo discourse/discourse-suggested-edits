@@ -144,7 +144,10 @@ module DiscourseSuggestedEdits
     end
 
     def apply_params
-      params.permit(accepted_change_ids: []).to_h.merge(suggestion_id: params[:id])
+      params
+        .permit(accepted_change_ids: [], change_overrides: {})
+        .to_h
+        .merge(suggestion_id: params[:id])
     end
 
     def rate_limit_create!

@@ -133,6 +133,7 @@ function initializePlugin(api) {
         if (meta.existingSuggestionId) {
           await updateSuggestedEdit(meta.existingSuggestionId, {
             raw: model.reply,
+            reason: meta.reason,
           });
           this.toasts.success({
             data: {
@@ -144,6 +145,7 @@ function initializePlugin(api) {
           const result = await createSuggestedEdit({
             postId: meta.postId,
             raw: model.reply,
+            reason: meta.reason,
           });
           if (model.topic) {
             model.topic.set(

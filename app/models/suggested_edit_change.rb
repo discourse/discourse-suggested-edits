@@ -30,6 +30,31 @@ class SuggestedEditChange < ActiveRecord::Base
     "<div class=\"inline-diff\">#{parts.join}</div>"
   end
 
+  def side_by_side_diff
+    before_tokens = tokenize(CGI.escapeHTML(before_text))
+    after_tokens = tokenize(CGI.escapeHTML(after_text))
+    diff = ONPDiff.new(before_tokens, after_tokens).short_diff
+
+    left = []
+    right = []
+    diff.each do |text, op|
+      case op
+      when :common
+        left << text
+        right << text
+      when :delete
+        left << "<del class=\"diff-del\">#{text}</del>"
+      when :add
+        right << "<ins class=\"diff-ins\">#{text}</ins>"
+      end
+    end
+
+    {
+      before: "<div class=\"side-by-side-diff__before\">#{left.join}</div>",
+      after: "<div class=\"side-by-side-diff__after\">#{right.join}</div>",
+    }
+  end
+
   private
 
   def tokenize(text)

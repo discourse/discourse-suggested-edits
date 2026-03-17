@@ -50,10 +50,18 @@ export function fetchSuggestedEdit(id) {
   return ajax(`${BASE}/${id}`);
 }
 
-export function applySuggestedEdit(id, acceptedChangeIds) {
+export function applySuggestedEdit(
+  id,
+  acceptedChangeIds,
+  changeOverrides = {}
+) {
+  const data = { accepted_change_ids: acceptedChangeIds };
+  if (Object.keys(changeOverrides).length > 0) {
+    data.change_overrides = changeOverrides;
+  }
   return ajax(`${BASE}/${id}/apply`, {
     type: "PUT",
-    data: { accepted_change_ids: acceptedChangeIds },
+    data,
   });
 }
 

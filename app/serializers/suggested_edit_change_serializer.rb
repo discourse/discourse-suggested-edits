@@ -8,6 +8,8 @@ class SuggestedEditChangeSerializer < ApplicationSerializer
              :before_text,
              :after_text,
              :diff_html,
+             :side_by_side_before_html,
+             :side_by_side_after_html,
              :preview_context_before,
              :preview_context_after,
              :context_before,
@@ -15,6 +17,14 @@ class SuggestedEditChangeSerializer < ApplicationSerializer
 
   def diff_html
     object.diff_html
+  end
+
+  def side_by_side_before_html
+    side_by_side_diff[:before]
+  end
+
+  def side_by_side_after_html
+    side_by_side_diff[:after]
   end
 
   def preview_context_before
@@ -34,6 +44,10 @@ class SuggestedEditChangeSerializer < ApplicationSerializer
   end
 
   private
+
+  def side_by_side_diff
+    @side_by_side_diff ||= object.side_by_side_diff
+  end
 
   def context_preview
     @context_preview ||= {
