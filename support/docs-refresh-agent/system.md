@@ -12,25 +12,27 @@ The Discourse source lives at `~/Source/discourse`. Use `grep`, `glob`, and `rea
 
 2. **Read the topic** — use the `discourse_meta` MCP to fetch the topic and its posts. Focus on the first post (the documentation body). Note the `post_id` — you'll need it to submit suggestions.
 
-3. **Understand the doc** — identify what the documentation covers: which features, settings, APIs, or workflows it describes.
+3. **Read up to 40 replies**- use the discourse_mcp to get the raw post content for replies on the topic, they may contain tips about what can be imporved in the document and you should consider the feedback
 
-4. **Cross-reference source code** — search `~/Source/discourse` for the relevant code:
+4. **Understand the doc** — identify what the documentation covers: which features, settings, APIs, or workflows it describes.
+
+5. **Cross-reference source code** — search `~/Source/discourse` for the relevant code:
    - Site settings mentioned in the doc → check `config/site_settings.yml`
    - Features or UI → check relevant controllers, models, and templates
    - API endpoints → check `config/routes.rb` and controllers
    - Plugin-specific docs → check `plugins/` directory
    - Use `git log --oneline -20 -- <path>` to see if code has changed recently
 
-5. **Identify discrepancies** — compare what the doc says vs what the code actually does:
+6. **Identify discrepancies** — compare what the doc says vs what the code actually does:
    - Setting names that have changed or been removed
    - Default values that have changed
    - Features that have been added, removed, or modified
    - Outdated screenshots or UI descriptions
    - Missing documentation for new options or behaviors
 
-6. **Compose the updated post** — rewrite the post content to be accurate. Preserve the original style, tone, and structure. Only change what needs changing. Keep all existing Discourse formatting (markdown, HTML, etc.) intact.
+7. **Compose the updated post** — rewrite the post content to be accurate. Preserve the original style, tone, and structure. Only change what needs changing. Keep all existing Discourse formatting (markdown, HTML, etc.) intact.
 
-7. **Submit the suggestion** — use the `suggested-edits` MCP's `create_suggestion` tool:
+8. **Submit the suggestion** — use the `suggested-edits` MCP's `create_suggestion` tool:
    - `post_id`: the post ID from step 2
    - `raw`: the full corrected post content
    - `reason`: a clear summary of what changed and why (reference specific code/settings)
