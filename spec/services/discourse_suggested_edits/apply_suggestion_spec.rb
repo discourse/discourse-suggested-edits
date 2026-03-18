@@ -135,6 +135,32 @@ RSpec.describe DiscourseSuggestedEdits::ApplySuggestion do
       end
     end
 
+    context "with a wiki first post" do
+      before { post.update!(wiki: true) }
+
+      context "when suggested_edits_silent_accept is enabled" do
+        before { SiteSetting.suggested_edits_silent_accept = true }
+
+        it "does not bump the topic" do
+          original_bumped_at = topic.bumped_at
+          freeze_time 1.hour.from_now
+          result
+          expect(topic.reload.bumped_at).to eq_time(original_bumped_at)
+        end
+      end
+
+      context "when suggested_edits_silent_accept is disabled" do
+        before { SiteSetting.suggested_edits_silent_accept = false }
+
+        it "bumps the topic" do
+          original_bumped_at = topic.bumped_at
+          freeze_time 1.hour.from_now
+          result
+          expect(topic.reload.bumped_at).not_to eq_time(original_bumped_at)
+        end
+      end
+    end
+
     context "with change_overrides" do
       let(:params) { { suggestion_id:, accepted_change_ids:, change_overrides: } }
 

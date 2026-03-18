@@ -13,7 +13,7 @@ class SuggestedEditChange < ActiveRecord::Base
   def diff_html
     before_tokens = tokenize(CGI.escapeHTML(before_text))
     after_tokens = tokenize(CGI.escapeHTML(after_text))
-    diff = ONPDiff.new(before_tokens, after_tokens).short_diff
+    diff = coalesce_adjacent_changes(ONPDiff.new(before_tokens, after_tokens).short_diff)
 
     parts = []
     diff.each do |text, op|
@@ -33,7 +33,7 @@ class SuggestedEditChange < ActiveRecord::Base
   def side_by_side_diff
     before_tokens = tokenize(CGI.escapeHTML(before_text))
     after_tokens = tokenize(CGI.escapeHTML(after_text))
-    diff = ONPDiff.new(before_tokens, after_tokens).short_diff
+    diff = coalesce_adjacent_changes(ONPDiff.new(before_tokens, after_tokens).short_diff)
 
     left = []
     right = []
@@ -61,6 +61,46 @@ class SuggestedEditChange < ActiveRecord::Base
     # Keep words and whitespace separate so newline-only deletions don't
     # force neighboring unchanged words into delete/add churn.
     text.scan(/[^\s]+|[ \t]+|\n+/)
+  end
+
+  def coalesce_adjacent_changes(diff)
+    result = []
+    del_parts = []
+    add_parts = []
+    pending_ws = []
+
+    diff.each do |text, op|
+      if op == :common
+        if (del_parts.any? || add_parts.any?) && text.match?(/\A[ \t]+\z/)
+          pending_ws << text
+        else
+          flush_changes(result, del_parts, add_parts, pending_ws)
+          result << [text, :common]
+        end
+      else
+        if pending_ws.any?
+          ws = pending_ws.join
+          del_parts << ws
+          add_parts << ws
+          pending_ws.clear
+        end
+        (op == :delete ? del_parts : add_parts) << text
+      end
+    end
+
+    flush_changes(result, del_parts, add_parts, pending_ws)
+    result
+  end
+
+  def flush_changes(result, del_parts, add_parts, pending_ws)
+    if del_parts.any? || add_parts.any?
+      result << [del_parts.join, :delete] if del_parts.any?
+      result << [add_parts.join, :add] if add_parts.any?
+      del_parts.clear
+      add_parts.clear
+    end
+    pending_ws.each { |ws| result << [ws, :common] }
+    pending_ws.clear
   end
 end
 

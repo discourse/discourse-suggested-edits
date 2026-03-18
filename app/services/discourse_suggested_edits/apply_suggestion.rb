@@ -148,6 +148,7 @@ class DiscourseSuggestedEdits::ApplySuggestion
         },
         force_new_version: true,
         bypass_rate_limiter: true,
+        bypass_bump: SiteSetting.suggested_edits_silent_accept,
         suggested_edit: true,
       )
 

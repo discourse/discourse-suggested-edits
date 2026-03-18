@@ -11,6 +11,7 @@ import concatClass from "discourse/helpers/concat-class";
 import icon from "discourse/helpers/d-icon";
 import formatDate from "discourse/helpers/format-date";
 import { popupAjaxError } from "discourse/lib/ajax-error";
+import KeyValueStore from "discourse/lib/key-value-store";
 import { eq } from "discourse/truth-helpers";
 import { i18n } from "discourse-i18n";
 import SuggestedEditChangeItem from "discourse/plugins/discourse-suggested-edits/discourse/components/suggested-edit-change-item";
@@ -21,6 +22,9 @@ import {
   fetchSuggestedEdits,
 } from "discourse/plugins/discourse-suggested-edits/discourse/lib/suggested-edits-api";
 
+const VIEW_MODE_KEY = "suggested-edits-view-mode";
+const store = new KeyValueStore("discourse_suggested_edits_");
+
 export default class SuggestedEditsReviewModal extends Component {
   @service toasts;
 
@@ -30,7 +34,7 @@ export default class SuggestedEditsReviewModal extends Component {
   @tracked editedChanges = new Map();
   @tracked editingChangeId = null;
   @tracked loading = true;
-  @tracked viewMode = "inline";
+  @tracked viewMode = store.get(VIEW_MODE_KEY) || "inline";
 
   constructor() {
     super(...arguments);
@@ -130,12 +134,14 @@ export default class SuggestedEditsReviewModal extends Component {
   setInline(event) {
     event.preventDefault();
     this.viewMode = "inline";
+    store.set({ key: VIEW_MODE_KEY, value: "inline" });
   }
 
   @action
   setSideBySide(event) {
     event.preventDefault();
     this.viewMode = "side-by-side";
+    store.set({ key: VIEW_MODE_KEY, value: "side-by-side" });
   }
 
   @action

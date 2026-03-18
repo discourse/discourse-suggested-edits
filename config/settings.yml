@@ -30,3 +30,5 @@ discourse_suggested_edits:
     type: integer
     default: 10
     min: 1
+  suggested_edits_silent_accept:
+    default: false
