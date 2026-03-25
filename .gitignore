@@ -1,1 +1,3 @@
 support/refresh-docs-progress.json
+node_modules
+.eslintcache

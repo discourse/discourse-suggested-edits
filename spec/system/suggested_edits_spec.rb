@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-RSpec.describe "Suggested Edits", type: :system do
+RSpec.describe "Suggested Edits" do
   fab!(:admin)
   fab!(:category)
   fab!(:suggest_group, :group)

@@ -1,0 +1,2 @@
+inherit_gem:
+  rubocop-discourse-base: stree-compat.yml
