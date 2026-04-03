@@ -41,13 +41,20 @@ end
 #  status            :integer          default("pending"), not null
 #  created_at        :datetime         not null
 #  updated_at        :datetime         not null
-#  applied_by_id     :integer
-#  post_id           :integer          not null
-#  user_id           :integer          not null
+#  applied_by_id     :bigint
+#  post_id           :bigint           not null
+#  user_id           :bigint           not null
 #
 # Indexes
 #
+#  idx_pending_suggested_edits_on_post_user     (post_id,user_id) UNIQUE WHERE (status = 0)
 #  index_suggested_edits_on_post_id_and_status  (post_id,status)
 #  index_suggested_edits_on_status              (status)
 #  index_suggested_edits_on_user_id             (user_id)
+#
+# Foreign Keys
+#
+#  fk_rails_...  (applied_by_id => users.id) ON DELETE => nullify
+#  fk_rails_...  (post_id => posts.id) ON DELETE => cascade
+#  fk_rails_...  (user_id => users.id)
 #
