@@ -119,5 +119,9 @@ end
 #
 # Indexes
 #
-#  index_suggested_edit_changes_on_suggested_edit_id_and_position  (suggested_edit_id,position)
+#  index_suggested_edit_changes_on_suggested_edit_id_and_position  (suggested_edit_id,position) UNIQUE
+#
+# Foreign Keys
+#
+#  fk_rails_...  (suggested_edit_id => suggested_edits.id) ON DELETE => cascade
 #
