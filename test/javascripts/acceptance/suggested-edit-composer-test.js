@@ -11,7 +11,6 @@ function buildComposerModel(owner, properties = {}) {
 
   model.setProperties({
     action: Composer.REPLY,
-    composeState: Composer.OPEN,
     draftKey: "topic_280",
     draftSequence: 0,
     reply: "Revised post content",
