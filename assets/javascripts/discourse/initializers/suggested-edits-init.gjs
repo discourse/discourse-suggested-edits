@@ -46,19 +46,6 @@ function initializePlugin(api) {
 
   api.registerRichEditorExtension(richEditorExtension);
 
-  api.customizeComposerText({
-    actionTitle(model) {
-      if (model.action === SUGGEST_EDIT_ACTION) {
-        return i18n("discourse_suggested_edits.composer.action_title");
-      }
-    },
-    saveLabel(model) {
-      if (model.action === SUGGEST_EDIT_ACTION) {
-        return "discourse_suggested_edits.composer.save_label";
-      }
-    },
-  });
-
   api.modifyClass("service:composer", {
     pluginId: "discourse-suggested-edits",
 
@@ -171,6 +158,18 @@ function initializePlugin(api) {
     },
   });
 
+  api.customizeComposerText({
+    actionTitle(model) {
+      if (model.action === SUGGEST_EDIT_ACTION) {
+        return i18n("discourse_suggested_edits.composer.action_title");
+      }
+    },
+    saveLabel(model) {
+      if (model.action === SUGGEST_EDIT_ACTION) {
+        return "discourse_suggested_edits.composer.save_label";
+      }
+    },
+  });
   api.modifyClass("controller:topic", {
     pluginId: "discourse-suggested-edits",
 
