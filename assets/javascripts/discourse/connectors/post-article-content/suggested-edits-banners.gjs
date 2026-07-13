@@ -93,11 +93,13 @@ export default class SuggestedEditsBanners extends Component {
           </span>
         </div>
         <div class="suggested-edits-banner__actions">
-          <DButton
-            @action={{this.openRevise}}
-            @label="discourse_suggested_edits.banner.edit"
-            class="btn-default btn-small suggested-edits-banner__action"
-          />
+          {{#if this.post.can_suggest_edit}}
+            <DButton
+              @action={{this.openRevise}}
+              @label="discourse_suggested_edits.banner.edit"
+              class="btn-default btn-small suggested-edits-banner__action"
+            />
+          {{/if}}
           <DButton
             @action={{this.withdraw}}
             @label="discourse_suggested_edits.banner.withdraw"

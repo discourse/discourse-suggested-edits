@@ -77,6 +77,24 @@ RSpec.describe DiscourseSuggestedEdits::ApplySuggestion do
       it { is_expected.to fail_a_policy(:can_review_suggested_edit) }
     end
 
+    context "when the post is staff-locked and the reviewer is not staff" do
+      before { post.update!(locked_by_id: Fabricate(:moderator).id) }
+
+      it { is_expected.to fail_a_policy(:suggested_edits_post_writable) }
+
+      it "does not change the post raw" do
+        expect { result }.not_to change { post.reload.raw }
+      end
+    end
+
+    context "when the post is staff-locked and the reviewer is a moderator" do
+      let(:acting_user) { Fabricate(:moderator, groups: [review_group]) }
+
+      before { post.update!(locked_by_id: Fabricate(:moderator).id) }
+
+      it { is_expected.to run_successfully }
+    end
+
     context "when no accepted changes are selected" do
       let(:accepted_change_ids) { [] }
 

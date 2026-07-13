@@ -59,6 +59,7 @@ module DiscourseSuggestedEdits
         on_success { |suggested_edit:| render_suggested_edit(suggested_edit) }
         on_model_not_found(:suggested_edit) { raise Discourse::NotFound }
         on_failed_policy(:can_update_suggested_edit) { raise Discourse::InvalidAccess }
+        on_failed_policy(:suggested_edits_post_writable) { raise Discourse::InvalidAccess }
         on_failed_contract do |contract|
           render_json_error(contract.errors.full_messages.first, status: :bad_request)
         end
@@ -99,6 +100,7 @@ module DiscourseSuggestedEdits
         on_success { head :no_content }
         on_model_not_found(:suggested_edit) { raise Discourse::NotFound }
         on_failed_policy(:can_review_suggested_edit) { raise Discourse::InvalidAccess }
+        on_failed_policy(:suggested_edits_post_writable) { raise Discourse::InvalidAccess }
         on_failed_contract do |contract|
           render_json_error(contract.errors.full_messages.first, status: :bad_request)
         end

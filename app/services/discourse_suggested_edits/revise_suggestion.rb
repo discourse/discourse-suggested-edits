@@ -14,6 +14,7 @@ class DiscourseSuggestedEdits::ReviseSuggestion
 
   model :suggested_edit
   policy :can_update_suggested_edit
+  policy :suggested_edits_post_writable
   step :validate_payload
 
   lock(:suggested_edit) do
@@ -39,6 +40,10 @@ class DiscourseSuggestedEdits::ReviseSuggestion
 
   def can_update_suggested_edit(guardian:, suggested_edit:)
     guardian.can_update_suggested_edit?(suggested_edit)
+  end
+
+  def suggested_edits_post_writable(guardian:, suggested_edit:)
+    guardian.suggested_edits_post_writable?(suggested_edit.post)
   end
 
   def validate_payload(params:)

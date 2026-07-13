@@ -32,6 +32,13 @@ RSpec.describe "Suggested Edits" do
       expect(suggested_edits_page).to have_suggest_edit_button(first_post)
     end
 
+    it "does not offer a suggester the suggest-edit action on a staff-locked post" do
+      first_post.update!(locked_by_id: Fabricate(:moderator).id)
+
+      visit "/t/#{topic.slug}/#{topic.id}"
+      expect(suggested_edits_page).to have_no_suggest_edit_button(first_post)
+    end
+
     it "allows creating a suggestion" do
       visit "/t/#{topic.slug}/#{topic.id}"
       suggested_edits_page.click_suggest_edit(first_post)
@@ -124,6 +131,15 @@ RSpec.describe "Suggested Edits" do
     it "shows own pending banner" do
       visit "/t/#{topic.slug}/#{topic.id}"
       expect(suggested_edits_page).to have_own_banner
+    end
+
+    it "does not let the author edit their pending suggestion on a staff-locked post" do
+      first_post.update!(locked_by_id: Fabricate(:moderator).id)
+
+      visit "/t/#{topic.slug}/#{topic.id}"
+      expect(suggested_edits_page).to have_own_banner
+      expect(suggested_edits_page).to have_own_banner_withdraw_button
+      expect(suggested_edits_page).to have_no_own_banner_edit_button
     end
 
     it "allows withdrawing a suggestion" do

@@ -66,6 +66,12 @@ RSpec.describe DiscourseSuggestedEdits::ReviseSuggestion do
       it { is_expected.to fail_a_policy(:can_update_suggested_edit) }
     end
 
+    context "when the post is staff-locked and the user is not staff" do
+      before { post.update!(locked_by_id: Fabricate(:moderator).id) }
+
+      it { is_expected.to fail_a_policy(:suggested_edits_post_writable) }
+    end
+
     context "when payload validation fails" do
       let(:raw) { "a" * (SiteSetting.max_post_length + 1) }
 
