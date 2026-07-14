@@ -7,6 +7,8 @@ RSpec.describe DiscourseSuggestedEdits::SuggestionsController do
   fab!(:review_group, :group)
   fab!(:suggester) { Fabricate(:user, groups: [suggest_group]) }
   fab!(:reviewer) { Fabricate(:user, groups: [review_group]) }
+  fab!(:moderator)
+  fab!(:admin)
   fab!(:topic) { Fabricate(:topic, category: category, tags: [tag]) }
   fab!(:first_post) do
     Fabricate(:post, topic: topic, post_number: 1, raw: "Original content here.\n")
@@ -433,6 +435,37 @@ RSpec.describe DiscourseSuggestedEdits::SuggestionsController do
 
       expect(response.status).to eq(204)
       expect(first_post.reload.raw).to eq("Custom reviewer text.")
+    end
+
+    context "when the post is staff-locked" do
+      before { first_post.update!(locked_by_id: moderator.id) }
+
+      it "does not let a non-staff reviewer apply" do
+        sign_in(reviewer)
+
+        expect {
+          put "/suggested-edits/suggestions/#{suggestion.id}/apply.json",
+              params: {
+                accepted_change_ids: suggestion.edit_changes.pluck(:id),
+              }
+        }.not_to change { first_post.reload.raw }
+
+        expect(response.status).to eq(403)
+        expect(suggestion.reload).to be_pending
+      end
+
+      it "lets an admin apply" do
+        sign_in(admin)
+
+        put "/suggested-edits/suggestions/#{suggestion.id}/apply.json",
+            params: {
+              accepted_change_ids: suggestion.edit_changes.pluck(:id),
+            }
+
+        expect(response.status).to eq(204)
+        expect(first_post.reload.raw).to eq("New content here.")
+        expect(suggestion.reload).to be_applied
+      end
     end
   end
 

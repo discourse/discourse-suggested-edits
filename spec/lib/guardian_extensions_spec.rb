@@ -7,6 +7,8 @@ RSpec.describe DiscourseSuggestedEdits::GuardianExtensions do
   fab!(:review_group, :group)
   fab!(:suggester) { Fabricate(:user, groups: [suggest_group]) }
   fab!(:reviewer) { Fabricate(:user, groups: [review_group]) }
+  fab!(:moderator)
+  fab!(:admin)
   fab!(:topic) { Fabricate(:topic, category: category, tags: [tag]) }
   fab!(:first_post) { Fabricate(:post, topic: topic, post_number: 1) }
 
@@ -43,6 +45,11 @@ RSpec.describe DiscourseSuggestedEdits::GuardianExtensions do
     it "returns false for non-first posts" do
       reply = Fabricate(:post, topic: topic, post_number: 2)
       expect(suggester.guardian.can_suggest_edit?(reply)).to eq(false)
+    end
+
+    it "returns false when the post is staff-locked and the user is not staff" do
+      first_post.update!(locked_by_id: moderator.id)
+      expect(suggester.guardian.can_suggest_edit?(first_post)).to eq(false)
     end
 
     it "returns false when the post is nil" do
@@ -219,6 +226,31 @@ RSpec.describe DiscourseSuggestedEdits::GuardianExtensions do
       hidden_topic = Fabricate(:topic, category: private_category)
       hidden_post = Fabricate(:post, topic: hidden_topic, post_number: 1)
       expect(reviewer.guardian.can_review_suggested_edits_for_post?(hidden_post)).to eq(false)
+    end
+  end
+
+  describe "#suggested_edits_post_writable?" do
+    it "returns true for an unlocked post" do
+      expect(suggester.guardian.suggested_edits_post_writable?(first_post)).to eq(true)
+    end
+
+    it "returns false for a non-staff user when the post is staff-locked" do
+      first_post.update!(locked_by_id: moderator.id)
+      expect(suggester.guardian.suggested_edits_post_writable?(first_post)).to eq(false)
+    end
+
+    it "returns true for a moderator when the post is staff-locked" do
+      first_post.update!(locked_by_id: moderator.id)
+      expect(moderator.guardian.suggested_edits_post_writable?(first_post)).to eq(true)
+    end
+
+    it "returns true for an admin when the post is staff-locked" do
+      first_post.update!(locked_by_id: moderator.id)
+      expect(admin.guardian.suggested_edits_post_writable?(first_post)).to eq(true)
+    end
+
+    it "returns false when the post is nil" do
+      expect(suggester.guardian.suggested_edits_post_writable?(nil)).to eq(false)
     end
   end
 

@@ -83,6 +83,18 @@ module PageObjects
         find(".suggested-edits-banner--own .btn-default").click
       end
 
+      def has_own_banner_edit_button?
+        has_css?(".suggested-edits-banner--own .btn-default")
+      end
+
+      def has_no_own_banner_edit_button?
+        has_no_css?(".suggested-edits-banner--own .btn-default")
+      end
+
+      def has_own_banner_withdraw_button?
+        has_css?(".suggested-edits-banner--own .btn-danger")
+      end
+
       def click_own_banner_withdraw
         find(".suggested-edits-banner--own .btn-danger").click
       end

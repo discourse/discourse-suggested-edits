@@ -6,6 +6,7 @@ module DiscourseSuggestedEdits
       return false unless SiteSetting.suggested_edits_enabled
       return false unless user
       return false unless post && can_see?(post)
+      return false unless suggested_edits_post_writable?(post)
       return false unless post.post_number == 1
 
       suggest_group_ids = SiteSetting.suggested_edits_suggest_groups_map
@@ -55,6 +56,10 @@ module DiscourseSuggestedEdits
 
     def can_review_suggested_edit?(suggested_edit)
       can_review_suggested_edits_for_post?(suggested_edit.post)
+    end
+
+    def suggested_edits_post_writable?(post)
+      post.present? && (is_staff? || !post.locked?)
     end
 
     private

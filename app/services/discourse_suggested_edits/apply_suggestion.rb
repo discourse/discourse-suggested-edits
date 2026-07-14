@@ -33,6 +33,7 @@ class DiscourseSuggestedEdits::ApplySuggestion
 
   model :suggested_edit
   policy :can_review_suggested_edit
+  policy :suggested_edits_post_writable
   lock(:suggested_edit) { step :apply_changes }
   step :publish_update
 
@@ -48,6 +49,10 @@ class DiscourseSuggestedEdits::ApplySuggestion
 
   def can_review_suggested_edit(guardian:, suggested_edit:)
     guardian.can_review_suggested_edit?(suggested_edit)
+  end
+
+  def suggested_edits_post_writable(guardian:, suggested_edit:)
+    guardian.suggested_edits_post_writable?(suggested_edit.post)
   end
 
   def apply_changes(suggested_edit:, guardian:, params:)
