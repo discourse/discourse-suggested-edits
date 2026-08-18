@@ -267,7 +267,6 @@ RSpec.describe "Suggested Edits" do
     end
 
     before do
-      SiteSetting.rich_editor = true
       suggester.user_option.update!(composition_mode: UserOption.composition_mode_types[:rich])
       sign_in(suggester)
     end
