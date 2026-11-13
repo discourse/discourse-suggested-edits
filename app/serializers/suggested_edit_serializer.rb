@@ -9,9 +9,18 @@ class SuggestedEditSerializer < ApplicationSerializer
              :reason,
              :created_at,
              :updated_at,
-             :applied_at
+             :applied_at,
+             :rendered_preview
 
   has_one :user, serializer: BasicUserSerializer, embed: :objects
   has_one :applied_by, serializer: BasicUserSerializer, embed: :objects
   has_many :edit_changes, serializer: SuggestedEditChangeSerializer, embed: :objects, key: :changes
+
+  def rendered_preview
+    DiscourseSuggestedEdits::RenderedPreview.call(object)
+  end
+
+  def include_rendered_preview?
+    !!@options[:include_rendered_preview]
+  end
 end

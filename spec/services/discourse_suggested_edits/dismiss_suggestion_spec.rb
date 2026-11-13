@@ -56,10 +56,32 @@ RSpec.describe DiscourseSuggestedEdits::DismissSuggestion do
       it { is_expected.to fail_a_policy(:can_review_suggested_edit) }
     end
 
-    context "when the suggestion is not pending" do
+    context "when the suggestion is stale" do
+      before { suggested_edit.update!(status: :stale) }
+
+      it { is_expected.to run_successfully }
+
+      it "dismisses the suggested edit" do
+        expect { result }.to change { suggested_edit.reload.status }.from("stale").to("dismissed")
+      end
+    end
+
+    context "when the suggestion is applied" do
+      before { suggested_edit.update!(status: :applied) }
+
+      it { is_expected.to fail_a_policy(:suggestion_is_unresolved) }
+    end
+
+    context "when the suggestion is dismissed" do
+      before { suggested_edit.update!(status: :dismissed) }
+
+      it { is_expected.to fail_a_policy(:suggestion_is_unresolved) }
+    end
+
+    context "when the suggestion is withdrawn" do
       before { suggested_edit.update!(status: :withdrawn) }
 
-      it { is_expected.to fail_a_policy(:suggestion_is_pending) }
+      it { is_expected.to fail_a_policy(:suggestion_is_unresolved) }
     end
 
     context "when everything is ok" do

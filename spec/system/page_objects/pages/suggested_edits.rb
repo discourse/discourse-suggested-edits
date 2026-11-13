@@ -115,6 +115,27 @@ module PageObjects
         all(".suggested-edit-change-item")
       end
 
+      def select_view_mode(mode)
+        find(".suggested-edits-review-modal .#{mode}-mode").click
+      end
+
+      def has_rendered_preview?(mode:, text:)
+        has_css?(".suggested-edit-change-item .suggested-edit-preview__body.--#{mode}", text: text)
+      end
+
+      def has_preview_with_change_controls?(change)
+        within(".suggested-edit-change-item[data-change-id='#{change.id}']") do
+          has_css?(".suggested-edit-preview__body") &&
+            has_css?(".suggested-edit-change-item__accept") &&
+            has_css?(".suggested-edit-change-item__edit") &&
+            has_css?(".suggested-edit-change-item__reject")
+        end
+      end
+
+      def has_source_diff?(text:)
+        has_css?(".suggested-edit-change-item__diff", text: text)
+      end
+
       def has_changed_block_markers?
         has_css?("#reply-control .ProseMirror .suggested-edit-changed-block")
       end

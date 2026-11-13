@@ -87,6 +87,19 @@ RSpec.describe DiscourseSuggestedEdits::ApplySuggestion do
       end
     end
 
+    context "when an existing pending suggestion targets a raw HTML post" do
+      let(:acting_user) { Fabricate(:admin) }
+
+      before { post.update_columns(cook_method: Post.cook_methods[:raw_html]) }
+
+      it { is_expected.to fail_a_policy(:suggested_edits_post_writable) }
+
+      it "leaves the post and suggestion untouched" do
+        expect { result }.not_to change { post.reload.raw }
+        expect(suggestion.reload).to be_pending
+      end
+    end
+
     context "when the post is staff-locked and the reviewer is a moderator" do
       let(:acting_user) { Fabricate(:moderator, groups: [review_group]) }
 

@@ -46,7 +46,20 @@ export function fetchSuggestedEdits(postId) {
   });
 }
 
-export function fetchSuggestedEdit(id) {
+export function fetchSuggestedEdit(
+  id,
+  { includeRenderedPreview = false, timeout } = {}
+) {
+  if (includeRenderedPreview) {
+    // A timed-out request is left unsent, which only rejects with
+    // `ignoreUnsent` off.
+    return ajax(`${BASE}/${id}`, {
+      data: { include_rendered_preview: true },
+      ignoreUnsent: false,
+      timeout,
+    });
+  }
+
   return ajax(`${BASE}/${id}`);
 }
 

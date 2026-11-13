@@ -25,6 +25,7 @@ after_initialize do
   require_relative "lib/discourse_suggested_edits/payload_validator"
   require_relative "lib/discourse_suggested_edits/guardian_extensions"
   require_relative "lib/discourse_suggested_edits/publisher"
+  require_relative "lib/discourse_suggested_edits/rendered_preview"
 
   DiscourseSuggestedEdits::RegisterFilters.register(self)
 
@@ -203,7 +204,7 @@ after_initialize do
     resolved_user_ids = stale_suggestions.pluck(:user_id)
     next if resolved_user_ids.blank?
 
-    stale_suggestions.update_all(status: SuggestedEdit.statuses[:stale])
+    stale_suggestions.update_all(status: SuggestedEdit.statuses[:stale], updated_at: Time.zone.now)
     DiscourseSuggestedEdits::Publisher.publish_post_update(
       post: post,
       resolved_user_ids: resolved_user_ids,

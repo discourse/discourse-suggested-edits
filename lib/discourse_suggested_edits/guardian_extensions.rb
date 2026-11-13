@@ -58,8 +58,10 @@ module DiscourseSuggestedEdits
       can_review_suggested_edits_for_post?(suggested_edit.post)
     end
 
+    # Suggestions are markdown edits, and raw HTML posts skip the sanitizing cook.
     def suggested_edits_post_writable?(post)
-      post.present? && (is_staff? || !post.locked?)
+      post.present? && post.cook_method == Post.cook_methods[:regular] &&
+        (is_staff? || !post.locked?)
     end
 
     private

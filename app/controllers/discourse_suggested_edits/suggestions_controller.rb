@@ -2,6 +2,8 @@
 
 module DiscourseSuggestedEdits
   class SuggestionsController < ::ApplicationController
+    RENDERED_PREVIEW_MAX_PER_MINUTE = 30
+
     requires_plugin DiscourseSuggestedEdits::PLUGIN_NAME
     requires_login
     before_action :rate_limit_create!, only: :create
@@ -27,7 +29,13 @@ module DiscourseSuggestedEdits
       raise Discourse::NotFound unless guardian.can_see?(suggestion.post)
       raise Discourse::InvalidAccess unless can_view?(suggestion)
 
-      render_suggested_edit(suggestion)
+      include_rendered_preview =
+        params[:include_rendered_preview].to_s == "true" &&
+          guardian.can_review_suggested_edit?(suggestion)
+
+      rate_limit_rendered_preview! if include_rendered_preview
+
+      render_suggested_edit(suggestion, include_rendered_preview: include_rendered_preview)
     end
 
     def create
@@ -118,7 +126,7 @@ module DiscourseSuggestedEdits
         on_model_not_found(:suggested_edit) { raise Discourse::NotFound }
         on_failed_policy(:can_see_post) { raise Discourse::NotFound }
         on_failed_policy(:can_review_suggested_edit) { raise Discourse::InvalidAccess }
-        on_failed_policy(:suggestion_is_pending) do
+        on_failed_policy(:suggestion_is_unresolved) do
           render_json_error(
             I18n.t("discourse_suggested_edits.errors.not_pending"),
             status: :conflict,
@@ -170,11 +178,23 @@ module DiscourseSuggestedEdits
       ).performed!
     end
 
-    def render_suggested_edit(suggested_edit, status: :ok)
+    # Preview rendering recooks both documents on every request, so cap the
+    # optional endpoint. Staff retain the standard RateLimiter exemption.
+    def rate_limit_rendered_preview!
+      RateLimiter.new(
+        current_user,
+        "rendered_suggested_edit_preview",
+        RENDERED_PREVIEW_MAX_PER_MINUTE,
+        1.minute,
+      ).performed!
+    end
+
+    def render_suggested_edit(suggested_edit, status: :ok, include_rendered_preview: false)
       render json: suggested_edit,
              serializer: SuggestedEditSerializer,
              root: "suggested_edit",
-             status: status
+             status: status,
+             include_rendered_preview: include_rendered_preview
     end
   end
 end

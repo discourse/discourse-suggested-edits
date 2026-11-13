@@ -52,6 +52,11 @@ RSpec.describe DiscourseSuggestedEdits::GuardianExtensions do
       expect(suggester.guardian.can_suggest_edit?(first_post)).to eq(false)
     end
 
+    it "returns false for a raw HTML post" do
+      first_post.update_columns(cook_method: Post.cook_methods[:raw_html])
+      expect(suggester.guardian.can_suggest_edit?(first_post)).to eq(false)
+    end
+
     it "returns false when the post is nil" do
       expect(suggester.guardian.can_suggest_edit?(nil)).to eq(false)
     end
@@ -251,6 +256,14 @@ RSpec.describe DiscourseSuggestedEdits::GuardianExtensions do
 
     it "returns false when the post is nil" do
       expect(suggester.guardian.suggested_edits_post_writable?(nil)).to eq(false)
+    end
+
+    it "returns false for raw HTML and email posts, even for admins" do
+      first_post.update_columns(cook_method: Post.cook_methods[:raw_html])
+      expect(admin.guardian.suggested_edits_post_writable?(first_post)).to eq(false)
+
+      first_post.update_columns(cook_method: Post.cook_methods[:email])
+      expect(admin.guardian.suggested_edits_post_writable?(first_post)).to eq(false)
     end
   end
 

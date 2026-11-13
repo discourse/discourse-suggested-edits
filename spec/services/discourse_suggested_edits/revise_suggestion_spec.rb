@@ -72,6 +72,12 @@ RSpec.describe DiscourseSuggestedEdits::ReviseSuggestion do
       it { is_expected.to fail_a_policy(:suggested_edits_post_writable) }
     end
 
+    context "when the post is raw HTML" do
+      before { post.update_columns(cook_method: Post.cook_methods[:raw_html]) }
+
+      it { is_expected.to fail_a_policy(:suggested_edits_post_writable) }
+    end
+
     context "when payload validation fails" do
       let(:raw) { "a" * (SiteSetting.max_post_length + 1) }
 

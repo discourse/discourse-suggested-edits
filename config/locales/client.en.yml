@@ -24,8 +24,29 @@ en:
       modal:
         review_title: "Review Suggested Edit"
       review:
+        change_label: "Change %{number}"
         view_inline: "Inline"
+        view_inline_title: "Show changes inline"
         view_side_by_side: "Side by side"
+        view_side_by_side_title: "Show changes side by side"
+        view_source: "Source"
+        view_source_title: "Show source changes"
+        preview:
+          source_fallback: "Rendered preview unavailable. Source shown."
+          no_visible_change: "No visible difference. Source shown."
+          retry: "Retry"
+          unavailable:
+            post_changed: "A rendered preview isn't available because the post changed after this suggestion was made. Review the source changes below."
+            unsupported_post: "Suggestions can't be applied to posts in this format, so this one can only be discarded."
+            too_complex: "This suggestion changes too much of the post to preview. Review the source changes below."
+            not_pending: "A rendered preview isn't available because this suggestion is no longer pending."
+            rate_limited: "Too many previews were loaded recently. Wait a minute before you retry, or review the source changes below."
+            error: "The preview couldn't be loaded. Review the source changes below."
+        revised: "This suggestion was revised, so its changes were reloaded and any decisions cleared."
+        resolved:
+          applied: "This suggestion has already been applied, so it can no longer be reviewed."
+          dismissed: "This suggestion was discarded, so it can no longer be reviewed."
+          withdrawn: "This suggestion was withdrawn by its author, so it can no longer be reviewed."
         suggested_by: "Suggested by"
         reason: "Reason"
         instructions: "Review each proposed change below. Use the controls above or below a change to reveal more of the surrounding post before applying."
@@ -38,6 +59,8 @@ en:
         apply_accepted: "Apply Accepted"
         accept_all: "Accept All"
         discard: "Discard Suggestion"
+        expand_context: "Expand"
+        collapse_context: "Collapse"
         expand_above: "Expand above"
         expand_below: "Expand below"
         no_changes_accepted: "Accept at least one change to apply."

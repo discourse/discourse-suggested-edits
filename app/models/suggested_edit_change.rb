@@ -11,12 +11,8 @@ class SuggestedEditChange < ActiveRecord::Base
             }
 
   def diff_html
-    before_tokens = tokenize(CGI.escapeHTML(before_text))
-    after_tokens = tokenize(CGI.escapeHTML(after_text))
-    diff = coalesce_adjacent_changes(ONPDiff.new(before_tokens, after_tokens).short_diff)
-
     parts = []
-    diff.each do |text, op|
+    word_diff.each do |text, op|
       case op
       when :common
         parts << text
@@ -31,13 +27,9 @@ class SuggestedEditChange < ActiveRecord::Base
   end
 
   def side_by_side_diff
-    before_tokens = tokenize(CGI.escapeHTML(before_text))
-    after_tokens = tokenize(CGI.escapeHTML(after_text))
-    diff = coalesce_adjacent_changes(ONPDiff.new(before_tokens, after_tokens).short_diff)
-
     left = []
     right = []
-    diff.each do |text, op|
+    word_diff.each do |text, op|
       case op
       when :common
         left << text
@@ -56,6 +48,15 @@ class SuggestedEditChange < ActiveRecord::Base
   end
 
   private
+
+  def word_diff
+    before_html = CGI.escapeHTML(before_text)
+    after_html = CGI.escapeHTML(after_text)
+
+    coalesce_adjacent_changes(ONPDiff.new(tokenize(before_html), tokenize(after_html)).short_diff)
+  rescue ONPDiff::DiffLimitExceeded
+    [[before_html, :delete], [after_html, :add]].reject { |text, _| text.empty? }
+  end
 
   def tokenize(text)
     # Keep words and whitespace separate so newline-only deletions don't

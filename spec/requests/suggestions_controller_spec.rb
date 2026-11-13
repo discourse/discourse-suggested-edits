@@ -270,6 +270,7 @@ RSpec.describe DiscourseSuggestedEdits::SuggestionsController do
 
       expect(response.status).to eq(200)
       expect(response.parsed_body.fetch("suggested_edits").length).to eq(1)
+      expect(response.parsed_body.dig("suggested_edits", 0)).not_to have_key("rendered_preview")
     end
 
     it "lists own suggestions for suggesters" do
@@ -303,7 +304,123 @@ RSpec.describe DiscourseSuggestedEdits::SuggestionsController do
       expect(response.status).to eq(200)
     end
 
-    it "serializes preview and expanded context fields" do
+    it "includes the rendered preview for reviewers who request it" do
+      sign_in(reviewer)
+
+      get "/suggested-edits/suggestions/#{suggestion.id}.json",
+          params: {
+            include_rendered_preview: true,
+          }
+
+      expect(response.status).to eq(200)
+      preview = response.parsed_body.dig("suggested_edit", "rendered_preview")
+      expect(preview["available"]).to eq(true)
+      expect(preview.keys).to contain_exactly("available", "changes", "gaps")
+      expect(preview["changes"].map { |change| change["id"] }).to eq(
+        suggestion.edit_changes.pluck(:id),
+      )
+      change = preview["changes"].sole
+      expect(change["available"]).to eq(true)
+      expect(change["inline"]).to include("inline-diff")
+      expect(change["side_by_side"]).to include("revision-content --current")
+      expect(change.keys).to contain_exactly("id", "available", "inline", "side_by_side")
+    end
+
+    it "uses existing raw hunk fields when a per-change preview is unavailable" do
+      sign_in(reviewer)
+
+      stub_const(DiscourseSuggestedEdits::RenderedPreview, :MAX_CANDIDATE_COOKS, 0) do
+        get "/suggested-edits/suggestions/#{suggestion.id}.json",
+            params: {
+              include_rendered_preview: true,
+            }
+      end
+
+      expect(response.status).to eq(200)
+      payload = response.parsed_body["suggested_edit"]
+      change = suggestion.edit_changes.sole
+      expect(payload["rendered_preview"]).to eq(
+        "available" => true,
+        "changes" => [
+          { "id" => change.id, "available" => false, "unavailable_reason" => "too_complex" },
+        ],
+        "gaps" => [],
+      )
+      expect(payload["changes"].sole).to include(
+        "id" => change.id,
+        "before_text" => change.before_text,
+        "after_text" => change.after_text,
+      )
+    end
+
+    it "reports a globally unavailable preview when the post raw changes without a version bump" do
+      first_post.update_columns(raw: "A different published post.")
+      sign_in(reviewer)
+
+      get "/suggested-edits/suggestions/#{suggestion.id}.json",
+          params: {
+            include_rendered_preview: true,
+          }
+
+      expect(response.status).to eq(200)
+      expect(response.parsed_body.dig("suggested_edit", "rendered_preview")).to eq(
+        "available" => false,
+        "unavailable_reason" => "post_changed",
+      )
+    end
+
+    it "reports a globally unavailable preview for unsupported raw HTML posts" do
+      first_post.update_columns(cook_method: Post.cook_methods[:raw_html])
+      sign_in(reviewer)
+
+      get "/suggested-edits/suggestions/#{suggestion.id}.json",
+          params: {
+            include_rendered_preview: true,
+          }
+
+      expect(response.status).to eq(200)
+      expect(response.parsed_body.dig("suggested_edit", "rendered_preview")).to eq(
+        "available" => false,
+        "unavailable_reason" => "unsupported_post",
+      )
+    end
+
+    it "omits the rendered preview unless requested" do
+      sign_in(reviewer)
+
+      get "/suggested-edits/suggestions/#{suggestion.id}.json"
+
+      expect(response.parsed_body["suggested_edit"]).not_to have_key("rendered_preview")
+    end
+
+    it "omits the rendered preview for suggesters who cannot review" do
+      sign_in(suggester)
+
+      get "/suggested-edits/suggestions/#{suggestion.id}.json",
+          params: {
+            include_rendered_preview: true,
+          }
+
+      expect(response.status).to eq(200)
+      expect(response.parsed_body["suggested_edit"]).not_to have_key("rendered_preview")
+    end
+
+    it "reports a not_pending preview for resolved suggestions" do
+      suggestion.update!(status: :applied)
+      sign_in(reviewer)
+
+      get "/suggested-edits/suggestions/#{suggestion.id}.json",
+          params: {
+            include_rendered_preview: true,
+          }
+
+      expect(response.status).to eq(200)
+      preview = response.parsed_body.dig("suggested_edit", "rendered_preview")
+      expect(preview["available"]).to eq(false)
+      expect(preview["unavailable_reason"]).to eq("not_pending")
+    end
+
+    it "serializes exact context gaps alongside existing hunk context fields" do
       context_post =
         Fabricate(
           :post,
@@ -330,10 +447,31 @@ RSpec.describe DiscourseSuggestedEdits::SuggestionsController do
 
       sign_in(reviewer)
 
-      get "/suggested-edits/suggestions/#{context_suggestion.id}.json"
+      get "/suggested-edits/suggestions/#{context_suggestion.id}.json",
+          params: {
+            include_rendered_preview: true,
+          }
 
       expect(response.status).to eq(200)
       change = response.parsed_body.dig("suggested_edit", "changes", 0)
+      expect(response.parsed_body.dig("suggested_edit", "rendered_preview", "gaps")).to eq(
+        [
+          {
+            "id" => "start-#{change["id"]}",
+            "before_change_id" => change["id"],
+            "after_change_id" => nil,
+            "raw" => "Lead paragraph before the change.\n\n",
+            "html" => "<p>Lead paragraph before the change.</p>",
+          },
+          {
+            "id" => "#{change["id"]}-end",
+            "before_change_id" => nil,
+            "after_change_id" => change["id"],
+            "raw" => "\nTrailing paragraph after the change.\n",
+            "html" => "<p>Trailing paragraph after the change.</p>",
+          },
+        ],
+      )
       expect(change["preview_context_before"]).to include("Lead paragraph before the change.")
       expect(change["preview_context_after"]).to include("Trailing paragraph after the change.")
       expect(change["context_before"]).to include("Lead paragraph before the change.")
@@ -342,6 +480,62 @@ RSpec.describe DiscourseSuggestedEdits::SuggestionsController do
       expect(change["preview_context_after"]).to start_with("\n")
       expect(change["context_before"]).to end_with("\n\n")
       expect(change["context_after"]).to start_with("\n")
+    end
+  end
+
+  describe "rendered preview rate limiting" do
+    fab!(:suggestion) { create_suggestion!(user: suggester) }
+
+    before { RateLimiter.enable }
+    after { RateLimiter.disable }
+
+    it "rate limits preview renders per reviewer" do
+      preview_reviewer = Fabricate(:user, groups: [review_group])
+      sign_in(preview_reviewer)
+
+      stub_const(described_class, :RENDERED_PREVIEW_MAX_PER_MINUTE, 1) do
+        get "/suggested-edits/suggestions/#{suggestion.id}.json",
+            params: {
+              include_rendered_preview: true,
+            }
+        expect(response.status).to eq(200)
+
+        get "/suggested-edits/suggestions/#{suggestion.id}.json",
+            params: {
+              include_rendered_preview: true,
+            }
+
+        expect(response.status).to eq(429)
+        expect(response.headers["Retry-After"]).to be_present
+      end
+    end
+
+    it "does not rate limit show requests without a rendered preview" do
+      preview_reviewer = Fabricate(:user, groups: [review_group])
+      sign_in(preview_reviewer)
+
+      stub_const(described_class, :RENDERED_PREVIEW_MAX_PER_MINUTE, 1) do
+        2.times do
+          get "/suggested-edits/suggestions/#{suggestion.id}.json"
+          expect(response.status).to eq(200)
+        end
+      end
+    end
+
+    it "does not rate limit preview requests from users who cannot review" do
+      sign_in(suggester)
+
+      stub_const(described_class, :RENDERED_PREVIEW_MAX_PER_MINUTE, 1) do
+        2.times do
+          get "/suggested-edits/suggestions/#{suggestion.id}.json",
+              params: {
+                include_rendered_preview: true,
+              }
+
+          expect(response.status).to eq(200)
+          expect(response.parsed_body["suggested_edit"]).not_to have_key("rendered_preview")
+        end
+      end
     end
   end
 
@@ -496,7 +690,17 @@ RSpec.describe DiscourseSuggestedEdits::SuggestionsController do
       expect(response.status).to eq(403)
     end
 
-    it "rejects dismiss when the suggestion is no longer pending" do
+    it "dismisses stale suggestions" do
+      suggestion.update!(status: :stale)
+      sign_in(reviewer)
+
+      put "/suggested-edits/suggestions/#{suggestion.id}/dismiss.json"
+
+      expect(response.status).to eq(204)
+      expect(suggestion.reload).to be_dismissed
+    end
+
+    it "rejects dismiss when the suggestion is resolved" do
       suggestion.update!(status: :applied)
       sign_in(reviewer)
 

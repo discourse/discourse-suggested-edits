@@ -13,7 +13,7 @@ module DiscourseSuggestedEdits
     model :suggested_edit
     policy :can_see_post
     policy :can_review_suggested_edit
-    policy :suggestion_is_pending
+    policy :suggestion_is_unresolved
     step :dismiss
     step :publish_update
 
@@ -31,8 +31,8 @@ module DiscourseSuggestedEdits
       guardian.can_review_suggested_edit?(suggested_edit)
     end
 
-    def suggestion_is_pending(suggested_edit:)
-      suggested_edit.pending?
+    def suggestion_is_unresolved(suggested_edit:)
+      suggested_edit.pending? || suggested_edit.stale?
     end
 
     def dismiss(suggested_edit:)

@@ -159,4 +159,38 @@ RSpec.describe SuggestedEditChange do
       expect(result[:after]).not_to include("</ins> <ins")
     end
   end
+
+  context "when the word diff is too complex" do
+    fab!(:change) do
+      Fabricate(
+        :suggested_edit_change,
+        suggested_edit: Fabricate(:suggested_edit, post: post, user: user),
+        before_text: "<b>old</b> words",
+        after_text: "new words",
+      )
+    end
+
+    before do
+      allow_any_instance_of(ONPDiff).to receive(:short_diff).and_raise(
+        ONPDiff::DiffLimitExceeded.new(
+          comparisons_used: 1,
+          comparison_budget: 1,
+          left_size: 1,
+          right_size: 1,
+        ),
+      )
+    end
+
+    it "shows the whole hunk as escaped source" do
+      expect(change.diff_html).to eq(
+        "<div class=\"inline-diff\"><del class=\"diff-del\">&lt;b&gt;old&lt;/b&gt; words</del><ins class=\"diff-ins\">new words</ins></div>",
+      )
+      expect(change.side_by_side_diff).to eq(
+        before:
+          "<div class=\"side-by-side-diff__before\"><del class=\"diff-del\">&lt;b&gt;old&lt;/b&gt; words</del></div>",
+        after:
+          "<div class=\"side-by-side-diff__after\"><ins class=\"diff-ins\">new words</ins></div>",
+      )
+    end
+  end
 end

@@ -5,6 +5,7 @@ import { action } from "@ember/object";
 import { htmlSafe } from "@ember/template";
 import DButton from "discourse/components/d-button";
 import { i18n } from "discourse-i18n";
+import SuggestedEditRenderedPreview from "./suggested-edit-rendered-preview";
 
 export default class SuggestedEditChangeItem extends Component {
   static CONTEXT_STEP = 220;
@@ -21,8 +22,41 @@ export default class SuggestedEditChangeItem extends Component {
       this.args.change.preview_context_after?.length || 0;
   }
 
+  get changeNumber() {
+    return (this.args.change.position ?? this.args.index ?? 0) + 1;
+  }
+
   get isSideBySide() {
-    return this.args.viewMode === "side-by-side";
+    return (this.args.sourceViewMode ?? this.args.viewMode) === "side-by-side";
+  }
+
+  get showRenderedPreview() {
+    return (
+      this.args.viewMode !== "source" &&
+      !this.args.isEditing &&
+      !this.isEdited &&
+      this.args.renderedPreview?.available &&
+      this.args.renderedPreview.inline &&
+      this.args.renderedPreview.sideBySide
+    );
+  }
+
+  get sourceNotice() {
+    if (
+      this.args.viewMode === "source" ||
+      this.args.isEditing ||
+      this.isEdited ||
+      !this.args.renderedPreview ||
+      this.showRenderedPreview
+    ) {
+      return null;
+    }
+
+    return i18n(
+      this.args.renderedPreview.unavailableReason === "no_visible_change"
+        ? "discourse_suggested_edits.review.preview.no_visible_change"
+        : "discourse_suggested_edits.review.preview.source_fallback"
+    );
   }
 
   get isAccepted() {
@@ -57,7 +91,7 @@ export default class SuggestedEditChangeItem extends Component {
   }
 
   get visibleContextBefore() {
-    if (!this.visibleBeforeLength) {
+    if (this.args.suppressContext || !this.visibleBeforeLength) {
       return "";
     }
 
@@ -65,7 +99,7 @@ export default class SuggestedEditChangeItem extends Component {
   }
 
   get visibleContextAfter() {
-    if (!this.visibleAfterLength) {
+    if (this.args.suppressContext || !this.visibleAfterLength) {
       return "";
     }
 
@@ -81,11 +115,17 @@ export default class SuggestedEditChangeItem extends Component {
   }
 
   get hasMoreContextBefore() {
-    return this.args.change.context_before.length > this.visibleBeforeLength;
+    return (
+      !this.args.suppressContext &&
+      this.args.change.context_before.length > this.visibleBeforeLength
+    );
   }
 
   get hasMoreContextAfter() {
-    return this.args.change.context_after.length > this.visibleAfterLength;
+    return (
+      !this.args.suppressContext &&
+      this.args.change.context_after.length > this.visibleAfterLength
+    );
   }
 
   @action
@@ -127,110 +167,131 @@ export default class SuggestedEditChangeItem extends Component {
   }
 
   <template>
-    <div class={{this.itemClass}}>
+    <div
+      aria-label={{i18n
+        "discourse_suggested_edits.review.change_label"
+        number=this.changeNumber
+      }}
+      class={{this.itemClass}}
+      data-change-id={{@change.id}}
+      role="group"
+      ...attributes
+    >
       <div class="suggested-edit-change-item__body">
-        {{#if this.hasMoreContextBefore}}
-          <div
-            class="suggested-edit-change-item__expand suggested-edit-change-item__expand--before"
-          >
-            <DButton
-              @action={{this.expandBefore}}
-              @icon="chevron-up"
-              @label="discourse_suggested_edits.review.expand_above"
-              @disabled={{@disabled}}
-              class="btn-flat btn-small suggested-edit-change-item__expand-control"
-            />
-          </div>
-        {{/if}}
-
-        {{#if @isEditing}}
-          <div class="suggested-edit-change-item__editor">
-            <textarea
-              class="suggested-edit-change-item__editor-textarea"
-              {{on "input" this.handleEditInput}}
-            >{{this.editText}}</textarea>
-            <div class="suggested-edit-change-item__editor-actions">
-              <DButton
-                @action={{this.saveEdit}}
-                @icon="check"
-                @label="discourse_suggested_edits.review.save_edit"
-                class="btn-primary btn-small suggested-edit-change-item__save-edit"
-              />
-              <DButton
-                @action={{this.cancelEdit}}
-                @label="discourse_suggested_edits.review.cancel_edit"
-                class="btn-default btn-small suggested-edit-change-item__cancel-edit"
-              />
-            </div>
-          </div>
-        {{else if this.isEdited}}
-          <div class="suggested-edit-change-item__diff">
-            <span class="suggested-edit-change-item__edited-badge">
-              {{i18n "discourse_suggested_edits.review.edited"}}
-            </span>
-            <pre
-              class="suggested-edit-change-item__edited-text"
-            >{{@editedAfterText}}</pre>
-          </div>
-        {{else if this.isSideBySide}}
-          <div
-            class="suggested-edit-change-item__diff suggested-edit-change-item__diff--side-by-side"
-          >
-            <div class="suggested-edit-change-item__side">
-              {{#if this.showVisibleContextBefore}}
-                <pre
-                  class="suggested-edit-change-item__context suggested-edit-change-item__context--before"
-                >…{{this.visibleContextBefore}}</pre>
-              {{/if}}
-              {{htmlSafe @change.side_by_side_before_html}}
-              {{#if this.showVisibleContextAfter}}
-                <pre
-                  class="suggested-edit-change-item__context suggested-edit-change-item__context--after"
-                >{{this.visibleContextAfter}}…</pre>
-              {{/if}}
-            </div>
-            <div class="suggested-edit-change-item__side">
-              {{#if this.showVisibleContextBefore}}
-                <pre
-                  class="suggested-edit-change-item__context suggested-edit-change-item__context--before"
-                >…{{this.visibleContextBefore}}</pre>
-              {{/if}}
-              {{htmlSafe @change.side_by_side_after_html}}
-              {{#if this.showVisibleContextAfter}}
-                <pre
-                  class="suggested-edit-change-item__context suggested-edit-change-item__context--after"
-                >{{this.visibleContextAfter}}…</pre>
-              {{/if}}
-            </div>
-          </div>
+        {{#if this.showRenderedPreview}}
+          <SuggestedEditRenderedPreview
+            @preview={{@renderedPreview}}
+            @viewMode={{@viewMode}}
+          />
         {{else}}
-          <div class="suggested-edit-change-item__diff">
-            {{#if this.showVisibleContextBefore}}
-              <pre
-                class="suggested-edit-change-item__context suggested-edit-change-item__context--before"
-              >…{{this.visibleContextBefore}}</pre>
-            {{/if}}
-            {{htmlSafe @change.diff_html}}
-            {{#if this.showVisibleContextAfter}}
-              <pre
-                class="suggested-edit-change-item__context suggested-edit-change-item__context--after"
-              >{{this.visibleContextAfter}}…</pre>
-            {{/if}}
-          </div>
-        {{/if}}
+          {{#if this.sourceNotice}}
+            <p
+              class="suggested-edit-change-item__source-notice"
+            >{{this.sourceNotice}}</p>
+          {{/if}}
+          {{#if this.hasMoreContextBefore}}
+            <div
+              class="suggested-edit-change-item__expand suggested-edit-change-item__expand--before"
+            >
+              <DButton
+                @action={{this.expandBefore}}
+                @icon="chevron-up"
+                @label="discourse_suggested_edits.review.expand_above"
+                @disabled={{@disabled}}
+                class="btn-flat btn-small suggested-edit-change-item__expand-control"
+              />
+            </div>
+          {{/if}}
 
-        {{#if this.hasMoreContextAfter}}
-          <div
-            class="suggested-edit-change-item__expand suggested-edit-change-item__expand--after"
-          >
-            <DButton
-              @action={{this.expandAfter}}
-              @icon="chevron-down"
-              @label="discourse_suggested_edits.review.expand_below"
-              @disabled={{@disabled}}
-              class="btn-flat btn-small suggested-edit-change-item__expand-control"
-            />
-          </div>
+          {{#if @isEditing}}
+            <div class="suggested-edit-change-item__editor">
+              <textarea
+                class="suggested-edit-change-item__editor-textarea"
+                {{on "input" this.handleEditInput}}
+              >{{this.editText}}</textarea>
+              <div class="suggested-edit-change-item__editor-actions">
+                <DButton
+                  @action={{this.saveEdit}}
+                  @icon="check"
+                  @label="discourse_suggested_edits.review.save_edit"
+                  class="btn-primary btn-small suggested-edit-change-item__save-edit"
+                />
+                <DButton
+                  @action={{this.cancelEdit}}
+                  @label="discourse_suggested_edits.review.cancel_edit"
+                  class="btn-default btn-small suggested-edit-change-item__cancel-edit"
+                />
+              </div>
+            </div>
+          {{else if this.isEdited}}
+            <div class="suggested-edit-change-item__diff">
+              <span class="suggested-edit-change-item__edited-badge">
+                {{i18n "discourse_suggested_edits.review.edited"}}
+              </span>
+              <pre
+                class="suggested-edit-change-item__edited-text"
+              >{{@editedAfterText}}</pre>
+            </div>
+          {{else if this.isSideBySide}}
+            <div
+              class="suggested-edit-change-item__diff suggested-edit-change-item__diff--side-by-side"
+            >
+              <div class="suggested-edit-change-item__side">
+                {{#if this.showVisibleContextBefore}}
+                  <pre
+                    class="suggested-edit-change-item__context suggested-edit-change-item__context--before"
+                  >…{{this.visibleContextBefore}}</pre>
+                {{/if}}
+                {{htmlSafe @change.side_by_side_before_html}}
+                {{#if this.showVisibleContextAfter}}
+                  <pre
+                    class="suggested-edit-change-item__context suggested-edit-change-item__context--after"
+                  >{{this.visibleContextAfter}}…</pre>
+                {{/if}}
+              </div>
+              <div class="suggested-edit-change-item__side">
+                {{#if this.showVisibleContextBefore}}
+                  <pre
+                    class="suggested-edit-change-item__context suggested-edit-change-item__context--before"
+                  >…{{this.visibleContextBefore}}</pre>
+                {{/if}}
+                {{htmlSafe @change.side_by_side_after_html}}
+                {{#if this.showVisibleContextAfter}}
+                  <pre
+                    class="suggested-edit-change-item__context suggested-edit-change-item__context--after"
+                  >{{this.visibleContextAfter}}…</pre>
+                {{/if}}
+              </div>
+            </div>
+          {{else}}
+            <div class="suggested-edit-change-item__diff">
+              {{#if this.showVisibleContextBefore}}
+                <pre
+                  class="suggested-edit-change-item__context suggested-edit-change-item__context--before"
+                >…{{this.visibleContextBefore}}</pre>
+              {{/if}}
+              {{htmlSafe @change.diff_html}}
+              {{#if this.showVisibleContextAfter}}
+                <pre
+                  class="suggested-edit-change-item__context suggested-edit-change-item__context--after"
+                >{{this.visibleContextAfter}}…</pre>
+              {{/if}}
+            </div>
+          {{/if}}
+
+          {{#if this.hasMoreContextAfter}}
+            <div
+              class="suggested-edit-change-item__expand suggested-edit-change-item__expand--after"
+            >
+              <DButton
+                @action={{this.expandAfter}}
+                @icon="chevron-down"
+                @label="discourse_suggested_edits.review.expand_below"
+                @disabled={{@disabled}}
+                class="btn-flat btn-small suggested-edit-change-item__expand-control"
+              />
+            </div>
+          {{/if}}
         {{/if}}
       </div>
       <div class="suggested-edit-change-item__actions">

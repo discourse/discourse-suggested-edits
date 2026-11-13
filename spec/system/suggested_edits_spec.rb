@@ -94,6 +94,23 @@ RSpec.describe "Suggested Edits" do
         expect(first_post.reload.raw).to eq("Updated post content here.")
       end
 
+      it "shows each rendered change in its own actionable card with exact source available" do
+        visit "/t/#{topic.slug}/#{topic.id}"
+        suggested_edits_page.click_review
+
+        expect(suggested_edits_page).to have_rendered_preview(
+          mode: "side-by-side",
+          text: "Updated post content here.",
+        )
+        expect(suggested_edits_page).to have_preview_with_change_controls(change1)
+
+        suggested_edits_page.select_view_mode("source")
+
+        expect(suggested_edits_page).to have_source_diff(text: change1.before_text)
+        expect(suggested_edits_page).to have_source_diff(text: change1.after_text)
+        expect(suggested_edits_page.change_items.length).to eq(1)
+      end
+
       it "allows dismissing a suggestion" do
         visit "/t/#{topic.slug}/#{topic.id}"
 
