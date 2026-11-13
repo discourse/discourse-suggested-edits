@@ -31,3 +31,32 @@ Enable the plugin and configure it under Admin > Settings:
 - Only first posts are eligible for suggestions.
 - A user can have at most one pending suggestion per post.
 - The suggested text must differ from the original and respect the `min_first_post_length` site setting.
+
+## Dependency maintenance
+
+The root `package.json`/`pnpm-lock.yaml` and `Gemfile`/`Gemfile.lock` are development lint/type-checking tools, not the plugin's runtime dependencies. Discourse supplies the plugin's runtime dependencies.
+
+From this repository, check both development dependency trees:
+
+```bash
+pnpm install --frozen-lockfile
+pnpm audit
+gem install bundler-audit --no-document
+bundler-audit check --update
+pnpm lint
+```
+
+Keep TypeScript explicitly installed here: the template checker requires the TypeScript 5 compiler API and must not resolve an incompatible compiler from a parent Discourse checkout.
+
+The dependency-checks workflow runs the audits on pull requests and weekly. Dependabot also checks the JavaScript and Ruby lint tools and workflow actions weekly. Resolve advisories by updating the affected dependency tree, rather than suppressing alerts or removing lockfiles.
+
+When changing dependencies, also run the plugin's Rails, browser, and JavaScript tests from a Discourse checkout:
+
+```bash
+LOAD_PLUGINS=1 bin/rspec plugins/discourse-suggested-edits/spec
+bin/qunit plugins/discourse-suggested-edits/test/javascripts
+```
+
+## Automation
+
+This plugin does not ship a standalone MCP server or documentation-refresh agent. Suggestions can be managed through the plugin's HTTP API. Any future MCP tooling should integrate with the shared Discourse MCP rather than introduce a separate server here.
