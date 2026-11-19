@@ -1,17 +1,17 @@
 {
   "private": true,
   "devDependencies": {
-    "@discourse/lint-configs": "2.43.0",
-    "@glint/ember-tsc": "1.1.1",
-    "concurrently": "^9.2.5",
+    "@discourse/lint-configs": "3.9.1",
+    "@glint/ember-tsc": "1.14.3",
+    "concurrently": "^10.0.7",
     "discourse": "npm:@discourse/types@2026.3.0-887c5be4",
-    "ember-template-lint": "7.9.3",
-    "eslint": "9.39.2",
-    "lint-to-the-future": "^2.6.4",
-    "lint-to-the-future-eslint": "^3.3.0",
-    "prettier": "3.8.1",
-    "stylelint": "17.4.0",
-    "typescript": "5.9.3"
+    "ember-template-lint": "7.9.4",
+    "eslint": "10.15.0",
+    "lint-to-the-future": "^3.2.0",
+    "lint-to-the-future-eslint": "^4.0.0",
+    "prettier": "3.10.1",
+    "stylelint": "18.0.0",
+    "typescript": "7.0.2"
   },
   "scripts": {
     "lint": "concurrently \"pnpm:lint:*(!fix)\" --names \"lint:\"",
