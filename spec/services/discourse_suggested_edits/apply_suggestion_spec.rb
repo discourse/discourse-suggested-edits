@@ -28,7 +28,7 @@ RSpec.describe DiscourseSuggestedEdits::ApplySuggestion do
     end
     fab!(:suggestion) do
       Fabricate(
-        :suggested_edit,
+        :suggested_edit_with_changes,
         post: post,
         user: suggester,
         raw_suggestion: "Line one\nLine TWO\nLine three\n",
@@ -47,10 +47,6 @@ RSpec.describe DiscourseSuggestedEdits::ApplySuggestion do
       SiteSetting.suggested_edits_suggest_groups = suggest_group.id.to_s
       SiteSetting.suggested_edits_review_groups = review_group.id.to_s
       SiteSetting.suggested_edits_included_categories = category.id.to_s
-
-      DiscourseSuggestedEdits::ChangeExtractor
-        .call(original_raw: post.raw, new_raw: suggestion.raw_suggestion)
-        .each { |change| Fabricate(:suggested_edit_change, suggested_edit: suggestion, **change) }
     end
 
     context "when contract is invalid" do
@@ -222,20 +218,12 @@ RSpec.describe DiscourseSuggestedEdits::ApplySuggestion do
         end
         fab!(:multi_suggestion) do
           Fabricate(
-            :suggested_edit,
+            :suggested_edit_with_changes,
             post: multi_post,
             user: suggester,
             raw_suggestion: "ALPHA\nMiddle\nBRAVO\n",
             base_post_version: multi_post.version,
           )
-        end
-
-        before do
-          DiscourseSuggestedEdits::ChangeExtractor
-            .call(original_raw: multi_post.raw, new_raw: multi_suggestion.raw_suggestion)
-            .each do |change|
-              Fabricate(:suggested_edit_change, suggested_edit: multi_suggestion, **change)
-            end
         end
 
         let(:suggestion_id) { multi_suggestion.id }

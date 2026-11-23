@@ -17,8 +17,8 @@ const GAP = {
   id: "start-11",
   before_change_id: 11,
   after_change_id: null,
-  raw: 'Before **the change**\n<img src="raw-only.png">',
-  html: '<p>Before <strong>the change</strong></p><img src="/uploads/context.png" alt="Context">',
+  raw: 'Before **the change**\n<img src="/images/transparent.png#raw-only.png">',
+  html: '<p>Before <strong>the change</strong></p><img src="/images/transparent.png#context.png" alt="Context">',
 };
 
 module("Integration | Component | SuggestedEditContext", function (hooks) {
@@ -148,7 +148,7 @@ module("Integration | Component | SuggestedEditContext", function (hooks) {
       gaps: [
         {
           ...GAP,
-          html: '<p><a href="https://example.com/guide">Guide</a><a href="javascript:alert(1)">Unsafe</a></p><img src="/uploads/context.png" onerror="alert(1)"><iframe src="https://example.com"></iframe><script>alert(1)</script>',
+          html: '<p><a href="https://example.com/guide">Guide</a><a href="javascript:alert(1)">Unsafe</a></p><img src="/images/transparent.png#context-onerror.png" onerror="alert(1)"><iframe src="https://example.com"></iframe><script>alert(1)</script>',
         },
       ],
     });

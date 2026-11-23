@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 RSpec.describe "Suggested Edits" do
-  fab!(:admin)
   fab!(:category)
   fab!(:suggest_group, :group)
   fab!(:review_group, :group)
@@ -12,10 +11,8 @@ RSpec.describe "Suggested Edits" do
     create_post(user: topic_author, category: category, raw: "Original post content here.")
   end
   fab!(:topic) { first_post.topic }
-  fab!(:reply_post) { create_post(topic: topic, raw: "This is a reply.") }
 
   let(:suggested_edits_page) { PageObjects::Pages::SuggestedEdits.new }
-  let(:topic_page) { PageObjects::Pages::Topic.new }
 
   before do
     SiteSetting.suggested_edits_enabled = true
@@ -27,29 +24,11 @@ RSpec.describe "Suggested Edits" do
   context "when suggesting an edit" do
     before { sign_in(suggester) }
 
-    it "shows suggest edit button on first post" do
-      visit "/t/#{topic.slug}/#{topic.id}"
-      expect(suggested_edits_page).to have_suggest_edit_button(first_post)
-    end
-
     it "does not offer a suggester the suggest-edit action on a staff-locked post" do
       first_post.update!(locked_by_id: Fabricate(:moderator).id)
 
       visit "/t/#{topic.slug}/#{topic.id}"
       expect(suggested_edits_page).to have_no_suggest_edit_button(first_post)
-    end
-
-    it "allows creating a suggestion" do
-      visit "/t/#{topic.slug}/#{topic.id}"
-      suggested_edits_page.click_suggest_edit(first_post)
-
-      expect(suggested_edits_page).to have_composer_open
-
-      suggested_edits_page.fill_composer("Updated post content here.")
-      suggested_edits_page.submit_suggestion
-
-      expect(suggested_edits_page).to have_no_composer
-      expect(page).to have_css(".fk-d-toasts", text: /suggested/i)
     end
   end
 
@@ -78,26 +57,13 @@ RSpec.describe "Suggested Edits" do
     context "as a reviewer" do
       before { sign_in(reviewer) }
 
-      it "shows review banner and allows accepting changes" do
+      it "lets a reviewer compare rendered and source changes and apply them" do
         visit "/t/#{topic.slug}/#{topic.id}"
-
         expect(suggested_edits_page).to have_review_banner
         suggested_edits_page.click_review
 
         expect(suggested_edits_page).to have_review_modal
         expect(suggested_edits_page.change_items.length).to eq(1)
-
-        suggested_edits_page.accept_all
-        suggested_edits_page.apply_accepted
-
-        expect(suggested_edits_page).to have_no_review_modal
-        expect(first_post.reload.raw).to eq("Updated post content here.")
-      end
-
-      it "shows each rendered change in its own actionable card with exact source available" do
-        visit "/t/#{topic.slug}/#{topic.id}"
-        suggested_edits_page.click_review
-
         expect(suggested_edits_page).to have_rendered_preview(
           mode: "side-by-side",
           text: "Updated post content here.",
@@ -105,10 +71,16 @@ RSpec.describe "Suggested Edits" do
         expect(suggested_edits_page).to have_preview_with_change_controls(change1)
 
         suggested_edits_page.select_view_mode("source")
-
         expect(suggested_edits_page).to have_source_diff(text: change1.before_text)
         expect(suggested_edits_page).to have_source_diff(text: change1.after_text)
         expect(suggested_edits_page.change_items.length).to eq(1)
+
+        suggested_edits_page.select_view_mode("side-by-side")
+        suggested_edits_page.accept_all
+        suggested_edits_page.apply_accepted
+
+        expect(suggested_edits_page).to have_no_review_modal
+        expect(first_post.reload.raw).to eq("Updated post content here.")
       end
 
       it "allows dismissing a suggestion" do
@@ -145,11 +117,6 @@ RSpec.describe "Suggested Edits" do
 
     before { sign_in(suggester) }
 
-    it "shows own pending banner" do
-      visit "/t/#{topic.slug}/#{topic.id}"
-      expect(suggested_edits_page).to have_own_banner
-    end
-
     it "does not let the author edit their pending suggestion on a staff-locked post" do
       first_post.update!(locked_by_id: Fabricate(:moderator).id)
 
@@ -163,6 +130,7 @@ RSpec.describe "Suggested Edits" do
       suggestion_id = suggested_edit.id
       visit "/t/#{topic.slug}/#{topic.id}"
 
+      expect(suggested_edits_page).to have_own_banner
       suggested_edits_page.click_own_banner_withdraw
       page.find(".dialog-footer .btn-primary").click
 
@@ -240,10 +208,14 @@ RSpec.describe "Suggested Edits" do
   end
 
   context "when creating and then editing a suggestion" do
+    fab!(:reply_post) { create_post(topic: topic, raw: "This is a reply.") }
+
     before { sign_in(suggester) }
 
     it "allows creating then revising without draft modals" do
       visit "/t/#{topic.slug}/#{topic.id}"
+      expect(suggested_edits_page).to have_suggest_edit_button(first_post)
+      expect(suggested_edits_page).to have_no_suggest_edit_button(reply_post)
 
       suggested_edits_page.click_suggest_edit(first_post)
       expect(suggested_edits_page).to have_composer_open
@@ -267,7 +239,7 @@ RSpec.describe "Suggested Edits" do
       expect(page).to have_css(".fk-d-toasts", text: /updated/i)
       expect(suggested_edits_page).to have_no_discard_draft_modal
 
-      suggestion = SuggestedEdit.last
+      suggestion = SuggestedEdit.find_by!(post: first_post, user: suggester)
       expect(suggestion.raw_suggestion).to eq("Revised suggested change.")
     end
   end

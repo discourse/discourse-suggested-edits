@@ -215,11 +215,13 @@ RSpec.describe DiscourseSuggestedEdits::RenderedPreview do
   end
 
   describe "hashtag permissions" do
-    fab!(:secret_category) do
-      Fabricate(:private_category, group: Fabricate(:group), slug: "secret-plans")
-    end
+    fab!(:readers, :group)
+    fab!(:secret_category) { Fabricate(:private_category, group: readers, slug: "secret-plans") }
 
-    before { post.update_columns(last_editor_id: Fabricate(:admin).id) }
+    before do
+      readers.add(post.user)
+      post.update_columns(last_editor_id: Fabricate(:admin).id)
+    end
 
     def hashtag_slugs(preview, side)
       Nokogiri::HTML5

@@ -8,6 +8,14 @@ Fabricator(:suggested_edit) do
   status 0
 end
 
+Fabricator(:suggested_edit_with_changes, from: :suggested_edit) do
+  after_create do |suggested_edit|
+    DiscourseSuggestedEdits::ChangeExtractor
+      .call(original_raw: suggested_edit.post.raw, new_raw: suggested_edit.raw_suggestion)
+      .each { |change| Fabricate(:suggested_edit_change, suggested_edit:, **change) }
+  end
+end
+
 Fabricator(:suggested_edit_change) do
   suggested_edit
   position 0

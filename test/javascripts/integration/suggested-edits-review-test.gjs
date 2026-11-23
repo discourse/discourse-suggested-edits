@@ -85,8 +85,8 @@ const RENDERED_PREVIEW = {
   changes: [
     renderedChange(
       12,
-      '<img src="/uploads/lake.png" alt="Lake">',
-      '<img src="/uploads/lake-blue.png" alt="Blue lake">'
+      '<img src="/images/transparent.png#lake.png" alt="Lake">',
+      '<img src="/images/transparent.png#lake-blue.png" alt="Blue lake">'
     ),
     renderedChange(11, "Original", "Updated"),
   ],
@@ -106,21 +106,21 @@ const CONTEXT_GAPS = [
     before_change_id: 11,
     after_change_id: null,
     raw: "Leading **context**\n\n",
-    html: '<p>Leading <strong>context</strong></p><img src="/uploads/leading.png" alt="Leading">',
+    html: '<p>Leading <strong>context</strong></p><img src="/images/transparent.png#leading.png" alt="Leading">',
   },
   {
     id: "11-12",
     before_change_id: 12,
     after_change_id: 11,
     raw: "Between context\n\n",
-    html: '<p>Between context</p><img src="/uploads/between.png" alt="Between">',
+    html: '<p>Between context</p><img src="/images/transparent.png#between.png" alt="Between">',
   },
   {
     id: "12-end",
     before_change_id: null,
     after_change_id: 12,
     raw: "Trailing context\n",
-    html: '<p>Trailing context</p><img src="/uploads/trailing.png" alt="Trailing">',
+    html: '<p>Trailing context</p><img src="/images/transparent.png#trailing.png" alt="Trailing">',
   },
 ];
 
@@ -129,7 +129,17 @@ const NOT_PENDING_PREVIEW = {
   unavailable_reason: "not_pending",
 };
 
-const ReviewHost = <template><ModalContainer /><LiveRegions /></template>;
+const ReviewHost = <template>
+  {{! Keep the real animationend event without waiting for the decorative entrance. }}
+  <style
+    {{! template-lint-disable no-forbidden-elements }}
+  >
+    .suggested-edits-review-modal .d-modal__container.is-entering {
+      animation-duration: 1ms;
+    }
+  </style>
+  <ModalContainer /><LiveRegions />
+</template>;
 
 const VIEW_MODE_KEY = "suggested-edits-view-mode";
 const viewModeStore = new KeyValueStore("discourse_suggested_edits_");
@@ -160,7 +170,8 @@ module(
           id: request.params.id,
           ...request.queryParams,
         });
-        const suggestedEdit = await this.showResponses[request.params.id]();
+        const suggestedEdit =
+          await this.showResponses[request.params.id](request);
         if (typeof suggestedEdit === "number") {
           return response(suggestedEdit, {});
         }
@@ -527,7 +538,7 @@ module(
         .dom(`${imageCard} .suggested-edit-preview__body .--current img`)
         .hasAttribute(
           "src",
-          "/uploads/lake-blue.png",
+          "/images/transparent.png#lake-blue.png",
           "the changed image is actually rendered in its card"
         );
       for (const card of [textCard, imageCard]) {
@@ -592,7 +603,8 @@ module(
     test("reviews only three changed cards for a ten-image post", async function (assert) {
       const tenImages = Array.from(
         { length: 10 },
-        (_, index) => `![Image ${index + 1}](/uploads/image-${index + 1}.png)`
+        (_, index) =>
+          `![Image ${index + 1}](/images/transparent.png#image-${index + 1}.png)`
       ).join("\n\n");
       const suggestion = buildSuggestion(9, [
         {
@@ -610,14 +622,14 @@ module(
           changes: [
             renderedChange(
               107,
-              '<img src="/uploads/image-7.png" alt="Image 7">',
-              '<img src="/uploads/image-7-new.png" alt="New image 7">'
+              '<img src="/images/transparent.png#image-7.png" alt="Image 7">',
+              '<img src="/images/transparent.png#image-7-new.png" alt="New image 7">'
             ),
             renderedChange(81, "Heading", "Updated heading"),
             renderedChange(
               94,
-              '<img src="/uploads/image-2.png" alt="Image 2">',
-              '<img src="/uploads/image-2-new.png" alt="New image 2">'
+              '<img src="/images/transparent.png#image-2.png" alt="Image 2">',
+              '<img src="/images/transparent.png#image-2-new.png" alt="New image 2">'
             ),
           ],
         },
@@ -650,18 +662,20 @@ module(
         .dom('[data-change-id="94"] .--current img')
         .hasAttribute(
           "src",
-          "/uploads/image-2-new.png",
+          "/images/transparent.png#image-2-new.png",
           "image 2 matches its exact raw hunk"
         );
       assert
         .dom('[data-change-id="107"] .--current img')
         .hasAttribute(
           "src",
-          "/uploads/image-7-new.png",
+          "/images/transparent.png#image-7-new.png",
           "image 7 matches its exact raw hunk"
         );
       assert
-        .dom('.suggested-edit-preview img[src="/uploads/image-1.png"]')
+        .dom(
+          '.suggested-edit-preview img[src="/images/transparent.png#image-1.png"]'
+        )
         .doesNotExist("unchanged context images are not rendered");
       assert.strictEqual(
         this.previewRequests.length,
@@ -1066,8 +1080,11 @@ module(
     test("times out a hung preview and ignores its late response", async function (assert) {
       SuggestedEditsReviewModal.RENDERED_PREVIEW_TIMEOUT = 50;
       const { promise: hung, resolve: releaseHung } = Promise.withResolvers();
-      this.showResponses[7] = async () => {
+      const { promise: lateLoad, resolve: markLateLoad } =
+        Promise.withResolvers();
+      this.showResponses[7] = async (request) => {
         if (this.previewRequests.length === 1) {
+          request.addEventListener("load", markLateLoad);
           await hung;
           return { ...REVISED_SUGGESTION, rendered_preview: REVISED_PREVIEW };
         }
@@ -1089,6 +1106,7 @@ module(
       assert.dom(".suggested-edit-change-item--accepted").exists({ count: 1 });
 
       releaseHung();
+      await lateLoad;
       await settled();
 
       assert

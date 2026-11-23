@@ -20,7 +20,7 @@ RSpec.describe DiscourseSuggestedEdits::ReviseSuggestion do
     end
     fab!(:suggested_edit) do
       Fabricate(
-        :suggested_edit,
+        :suggested_edit_with_changes,
         post: post,
         user: acting_user,
         raw_suggestion: "Line one\nLine TWO\nLine three\n",
@@ -40,12 +40,6 @@ RSpec.describe DiscourseSuggestedEdits::ReviseSuggestion do
       SiteSetting.suggested_edits_suggest_groups = suggest_group.id.to_s
       SiteSetting.suggested_edits_review_groups = review_group.id.to_s
       SiteSetting.suggested_edits_included_categories = category.id.to_s
-
-      DiscourseSuggestedEdits::ChangeExtractor
-        .call(original_raw: post.raw, new_raw: suggested_edit.raw_suggestion)
-        .each do |change|
-          Fabricate(:suggested_edit_change, suggested_edit: suggested_edit, **change)
-        end
     end
 
     context "when contract is invalid" do
